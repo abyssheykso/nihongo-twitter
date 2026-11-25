@@ -1,542 +1,203 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="theme-color" content="#ffffff">
-<title>にほんごTwitter</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>日推练习场 · にちぷれ</title>
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  :root {
-    --blue: #1d9bf0;
-    --text: #0f1419;
-    --gray: #536471;
-    --border: #eff3f4;
-    --hover: #f7f9f9;
-    --ok: #00ba7c;
-    --warn: #d9a300;
-    --ng: #f4212e;
-    --bg: #fff;
-  }
-  body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans",
-                 "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo, sans-serif;
-    background: var(--bg); color: var(--text); -webkit-font-smoothing: antialiased;
-  }
-  button { font-family: inherit; }
-  .app { display: flex; max-width: 1120px; margin: 0 auto; min-height: 100vh; }
-
-  /* ================= サイドバー ================= */
-  .sidebar {
-    width: 250px; flex-shrink: 0; padding: 12px 12px 12px 0;
-    border-right: 1px solid var(--border);
-    position: sticky; top: 0; height: 100vh;
-    display: flex; flex-direction: column; gap: 4px;
-  }
-  .logo { font-size: 20px; font-weight: 800; padding: 12px; letter-spacing: -.5px; }
-  .logo span { color: var(--blue); }
-  .nav-item {
-    padding: 12px; border-radius: 999px; font-size: 16px; cursor: pointer;
-    display: flex; align-items: center; gap: 12px; transition: background .15s;
-    border: none; background: none; text-align: left; color: var(--text); width: 100%;
-    position: relative;
-  }
-  .nav-item:hover { background: var(--hover); }
-  .nav-item.active { font-weight: 700; }
-  .nav-item .nav-badge {
-    position: absolute; left: 22px; top: 8px;
-    background: var(--ng); color: #fff; font-size: 10px; font-weight: 700;
-    border-radius: 999px; padding: 1px 5px; min-width: 16px; text-align: center;
-    line-height: 1.4;
-  }
-  .btn-tweet {
-    margin-top: 12px; background: var(--blue); color: #fff; border: none;
-    border-radius: 999px; padding: 14px; font-size: 16px; font-weight: 700;
-    cursor: pointer; transition: background .15s;
-  }
-  .btn-tweet:hover { background: #1a8cd8; }
-  .me {
-    margin-top: auto; display: flex; align-items: center; gap: 10px;
-    padding: 10px; border-radius: 999px;
-  }
-  .me .name { font-weight: 700; font-size: 14px; }
-  .me .handle { color: var(--gray); font-size: 13px; }
-
-  /* ================= メイン ================= */
-  .main { flex: 1; min-width: 0; max-width: 600px; border-right: 1px solid var(--border); }
-  .topbar {
-    position: sticky; top: 0; z-index: 10;
-    background: rgba(255,255,255,.88); backdrop-filter: blur(12px);
-    border-bottom: 1px solid var(--border);
-    padding: 14px 16px; font-size: 18px; font-weight: 800;
-    display: flex; align-items: center; gap: 10px;
-  }
-  .topbar .sub { font-size: 12px; font-weight: 400; color: var(--gray); margin-left: auto; }
-
-  .view { display: none; }
-  .view.active { display: block; }
-
-  .mode-banner {
-    padding: 10px 16px; background: #fff8e1; color: #8a6d00;
-    font-size: 13px; border-bottom: 1px solid var(--border); display: none;
-    line-height: 1.6;
-  }
-  .mode-banner.show { display: block; }
-  .mode-banner a { color: var(--blue); cursor: pointer; font-weight: 700; }
-
-  .composer { display: flex; gap: 12px; padding: 14px 16px; border-bottom: 1px solid var(--border); }
-  .composer-body { flex: 1; min-width: 0; }
-  #input {
-    width: 100%; border: none; outline: none; resize: none;
-    font-size: 19px; font-family: inherit; line-height: 1.5;
-    padding: 8px 0; min-height: 52px; background: transparent;
-  }
-  #input::placeholder { color: #8b98a5; }
-  .prompt-chip {
-    display: none; align-items: center; gap: 6px;
-    background: #eef6fd; border: 1px solid #cfe7fb; color: #0b6ea8;
-    padding: 6px 10px; border-radius: 12px; font-size: 12.5px; margin-bottom: 6px;
-  }
-  .prompt-chip.show { display: flex; }
-  .prompt-chip button { border: none; background: none; color: #0b6ea8; cursor: pointer; font-size: 14px; }
-  .composer-bar {
-    display: flex; align-items: center; justify-content: flex-end; gap: 14px;
-    border-top: 1px solid var(--border); padding-top: 12px; margin-top: 4px;
-  }
-  .counter { font-size: 13px; color: var(--gray); font-variant-numeric: tabular-nums; }
-  .counter.over { color: var(--ng); font-weight: 700; }
-  .btn-post {
-    background: var(--blue); color: #fff; border: none; border-radius: 999px;
-    padding: 9px 20px; font-size: 15px; font-weight: 700; cursor: pointer; transition: .15s;
-  }
-  .btn-post:disabled { opacity: .5; cursor: default; }
-  .btn-post:not(:disabled):hover { background: #1a8cd8; }
-
-  .avatar {
-    width: 40px; height: 40px; border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 20px; flex-shrink: 0; background: #e8f0fe; user-select: none;
-  }
-  .avatar.tiny { width: 20px; height: 20px; font-size: 11px; display: inline-flex; vertical-align: middle; }
-
-  /* ================= ツイート ================= */
-  .tweet {
-    display: flex; gap: 12px; padding: 14px 16px;
-    border-bottom: 1px solid var(--border); animation: fadeIn .35s ease;
-  }
-  @keyframes fadeIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
-  .tweet-body { flex: 1; min-width: 0; }
-  .meta { display: flex; align-items: center; gap: 5px; font-size: 15px; flex-wrap: wrap; margin-bottom: 3px; }
-  .meta .name { font-weight: 700; }
-  .meta .handle, .meta .time, .meta .dot { color: var(--gray); font-weight: 400; }
-  .text { font-size: 15px; line-height: 1.6; white-space: pre-wrap; word-break: break-word; }
-
-  .badge { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px; margin-left: 4px; }
-  .b-correct { background: #d6f5e8; color: #00794f; }
-  .b-minor_errors { background: #fff4d6; color: #8a6d00; }
-  .b-major_errors { background: #ffe0e3; color: #b8000f; }
-  .b-unclear { background: #e7eefb; color: #2b5aa8; }
-
-  .actions { display: flex; gap: 44px; margin-top: 10px; color: var(--gray); font-size: 13px; }
-  .act { display: flex; align-items: center; gap: 6px; }
-  .act.liked { color: var(--ng); }
-  .act.rt { color: var(--ok); }
-
-  .replies { margin-top: 12px; display: flex; flex-direction: column; gap: 12px; }
-  .reply {
-    display: flex; gap: 10px; padding: 10px 12px; background: #fafcfd;
-    border: 1px solid var(--border); border-radius: 14px; animation: fadeIn .4s ease;
-  }
-  .reply.rt { background: #f5fbf7; border-color: #ddf0e6; }
-  .reply .avatar { width: 32px; height: 32px; font-size: 16px; }
-  .reply-body { flex: 1; min-width: 0; }
-  .reply .meta { font-size: 13.5px; }
-  .reply .text { font-size: 14px; }
-  .rt-label { font-size: 11px; color: var(--ok); font-weight: 700; background: #e3f7ee; padding: 2px 7px; border-radius: 999px; }
-  .quote { margin-top: 8px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 10px; background: #fff; }
-  .quote .text { font-size: 13px; color: #3a4a56; }
-  .quote .meta { font-size: 12.5px; }
-
-  .correction {
-    margin-top: 8px; padding: 10px 12px; background: #fff;
-    border: 1px solid #cfe9dd; border-left: 3px solid var(--ok);
-    border-radius: 10px; font-size: 13.5px; line-height: 1.6;
-  }
-  .corr-line { display: flex; gap: 8px; align-items: flex-start; margin-bottom: 4px; }
-  .corr-line .mark { flex-shrink: 0; font-weight: 800; }
-  .corr-line.ng .mark { color: var(--ng); }
-  .corr-line.ok .mark { color: var(--ok); }
-  .corr-line .orig { color: #8a97a3; text-decoration: line-through; }
-  .corr-line .fixed { font-weight: 600; }
-  .explain { margin-top: 6px; color: #3a4a56; font-size: 13px; padding-left: 16px; }
-  .points { margin: 6px 0 0 32px; font-size: 12.5px; color: #536471; }
-  .points li { margin: 2px 0; }
-
-  .loading { display: flex; align-items: center; gap: 10px; margin-top: 12px; color: var(--gray); font-size: 13px; }
-  .dots { display: flex; gap: 4px; }
-  .dots span { width: 6px; height: 6px; border-radius: 50%; background: var(--blue); animation: bounce 1.2s infinite ease-in-out; }
-  .dots span:nth-child(2) { animation-delay: .15s; }
-  .dots span:nth-child(3) { animation-delay: .3s; }
-  @keyframes bounce { 0%,60%,100% { transform: translateY(0); opacity: .4; } 30% { transform: translateY(-5px); opacity: 1; } }
-  .error { margin-top: 10px; padding: 10px 12px; background: #ffe0e3; color: #b8000f; border-radius: 10px; font-size: 13px; line-height: 1.6; }
-
-  /* ================= 通知 ================= */
-  .notif {
-    display: flex; gap: 12px; padding: 14px 16px;
-    border-bottom: 1px solid var(--border); cursor: default;
-  }
-  .notif.unread { background: #f5faff; }
-  .notif-body { flex: 1; min-width: 0; }
-  .notif-head { font-size: 13px; color: var(--gray); margin-bottom: 3px; }
-  .notif-head b { color: var(--text); }
-  .notif-text { font-size: 14px; line-height: 1.55; }
-
-  /* ================= トレンド ================= */
-  .section-pad { padding: 16px; }
-  .sec-title { font-size: 18px; font-weight: 800; margin-bottom: 4px; }
-  .sec-desc { font-size: 13px; color: var(--gray); line-height: 1.7; margin-bottom: 14px; }
-
-  .daily-card {
-    border: 1px solid #cfe7fb; background: linear-gradient(180deg,#f3f9ff,#fff);
-    border-radius: 18px; padding: 18px; margin-bottom: 20px;
-  }
-  .daily-tag { font-size: 11px; font-weight: 800; color: #0b6ea8; letter-spacing: .5px; margin-bottom: 8px; }
-  .daily-ja { font-size: 19px; font-weight: 800; line-height: 1.55; margin-bottom: 6px; }
-  .daily-zh { font-size: 13px; color: var(--gray); margin-bottom: 14px; line-height: 1.6; }
-  .daily-actions { display: flex; gap: 8px; flex-wrap: wrap; }
-  .btn-ghost {
-    border: 1px solid var(--border); background: #fff; border-radius: 999px;
-    padding: 8px 16px; font-size: 13.5px; font-weight: 700; cursor: pointer; color: var(--text);
-  }
-  .btn-ghost:hover { background: var(--hover); }
-  .btn-primary {
-    border: none; background: var(--blue); color: #fff; border-radius: 999px;
-    padding: 8px 16px; font-size: 13.5px; font-weight: 700; cursor: pointer;
-  }
-  .btn-primary:hover { background: #1a8cd8; }
-  .done-mark { color: var(--ok); font-weight: 800; font-size: 13px; }
-
-  .trend-item { padding: 12px 0; border-bottom: 1px solid var(--border); }
-  .trend-item:last-child { border-bottom: none; }
-  .trend-cat { font-size: 12px; color: var(--gray); }
-  .trend-name { font-size: 15px; font-weight: 800; margin: 2px 0; }
-  .trend-count { font-size: 12px; color: var(--gray); }
-
-  /* ================= レポート ================= */
-  .stat-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 20px; }
-  .stat-box {
-    border: 1px solid var(--border); border-radius: 16px; padding: 14px;
-  }
-  .stat-box .num { font-size: 26px; font-weight: 800; line-height: 1.2; }
-  .stat-box .lab { font-size: 12px; color: var(--gray); margin-top: 2px; }
-  .bar-row { display: flex; align-items: center; gap: 10px; margin: 8px 0; font-size: 13px; }
-  .bar-label { width: 68px; flex-shrink: 0; color: #3a4a56; }
-  .bar-track { flex: 1; height: 10px; background: #eef2f5; border-radius: 999px; overflow: hidden; }
-  .bar-fill { height: 100%; background: var(--blue); border-radius: 999px; transition: width .5s; }
-  .bar-val { width: 26px; text-align: right; color: var(--gray); font-variant-numeric: tabular-nums; }
-  .judge-list { display: flex; flex-direction: column; gap: 8px; margin-top: 6px; }
-  .judge-row { display: flex; align-items: center; gap: 8px; font-size: 13.5px; }
-  .judge-row .dotc { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
-  .judge-row .n { margin-left: auto; font-weight: 700; }
-  .empty-note {
-    font-size: 13.5px; color: var(--gray); line-height: 1.8;
-    background: #f7f9f9; border-radius: 14px; padding: 16px;
-  }
-  .encourage {
-    margin-top: 18px; padding: 14px 16px; border-radius: 16px;
-    background: #e9f8f1; color: #00694b; font-size: 13.5px; line-height: 1.75;
-  }
-
-  /* ================= 右サイドバー ================= */
-  .aside { width: 300px; flex-shrink: 0; padding: 16px; display: flex; flex-direction: column; gap: 16px; }
-  .card { background: #f7f9f9; border-radius: 16px; padding: 14px 16px; }
-  .card-title { font-size: 17px; font-weight: 800; margin-bottom: 10px; }
-  .follower { display: flex; align-items: center; gap: 10px; padding: 7px 0; }
-  .follower .name { font-size: 14px; font-weight: 700; }
-  .follower .desc { font-size: 12px; color: var(--gray); }
-  .card p { font-size: 13px; line-height: 1.7; color: #3a4a56; }
-  .card p + p { margin-top: 8px; }
-  .followers-big { font-size: 24px; font-weight: 800; }
-  .followers-big span { font-size: 13px; font-weight: 400; color: var(--gray); margin-left: 4px; }
-
-  /* ================= モバイルナビ ================= */
-  .mobile-nav {
-    display: none; position: fixed; bottom: 0; left: 0; right: 0;
-    background: #fff; border-top: 1px solid var(--border);
-    padding: 6px 0 calc(6px + env(safe-area-inset-bottom));
-    z-index: 50; justify-content: space-around;
-  }
-  .mobile-nav button {
-    border: none; background: none; font-size: 21px; padding: 6px 14px;
-    cursor: pointer; position: relative; line-height: 1; color: var(--text);
-  }
-  .mobile-nav button.active { color: var(--blue); }
-  .mobile-nav .nav-badge {
-    position: absolute; top: 0; right: 6px;
-    background: var(--ng); color: #fff; font-size: 9px; font-weight: 700;
-    border-radius: 999px; padding: 1px 4px; min-width: 14px; text-align: center;
-  }
-
-  /* ================= 設定モーダル ================= */
-  .modal-mask {
-    position: fixed; inset: 0; background: rgba(0,0,0,.4);
-    display: none; align-items: flex-start; justify-content: center;
-    z-index: 100; padding: 40px 16px; overflow-y: auto;
-  }
-  .modal-mask.open { display: flex; }
-  .modal {
-    background: #fff; border-radius: 20px; width: 100%; max-width: 600px;
-    box-shadow: 0 8px 40px rgba(0,0,0,.2); animation: modalIn .2s ease; margin-bottom: 40px;
-  }
-  @keyframes modalIn { from { opacity: 0; transform: translateY(12px) scale(.98); } to { opacity: 1; transform: none; } }
-  .modal-header {
-    display: flex; align-items: center; gap: 12px; padding: 14px 16px;
-    border-bottom: 1px solid var(--border); position: sticky; top: 0;
-    background: #fff; border-radius: 20px 20px 0 0; z-index: 2;
-  }
-  .modal-header h2 { font-size: 19px; flex: 1; }
-  .icon-btn {
-    background: none; border: none; font-size: 18px; cursor: pointer;
-    width: 34px; height: 34px; border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-  }
-  .icon-btn:hover { background: var(--hover); }
-  .btn-save {
-    background: var(--text); color: #fff; border: none; border-radius: 999px;
-    padding: 8px 18px; font-weight: 700; cursor: pointer; font-size: 14px;
-  }
-  .btn-save:hover { opacity: .85; }
-  .modal-body { padding: 8px 20px 24px; }
-  .section { padding: 16px 0; border-bottom: 1px solid var(--border); }
-  .section:last-child { border-bottom: none; }
-  .section-title { font-size: 17px; font-weight: 800; margin-bottom: 8px; }
-  .hint { font-size: 13px; color: var(--gray); line-height: 1.7; margin-bottom: 12px; }
-  .preset-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
-  .preset-row button {
-    border: 1px solid var(--border); background: #fff; border-radius: 999px;
-    padding: 7px 14px; font-size: 13px; cursor: pointer; color: var(--text);
-  }
-  .preset-row button:hover { background: var(--hover); }
-  .preset-row button.active { background: var(--blue); color: #fff; border-color: var(--blue); }
-  .field { display: block; margin-bottom: 14px; }
-  .field > span { display: block; font-size: 13px; font-weight: 700; margin-bottom: 6px; color: #3a4a56; }
-  .field input[type=text], .field input[type=password] {
-    width: 100%; border: 1px solid #cfd9de; border-radius: 8px;
-    padding: 10px 12px; font-size: 14px; font-family: inherit; outline: none;
-  }
-  .field input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(29,155,240,.12); }
-  .key-row { display: flex; gap: 6px; align-items: center; }
-  .key-row input { flex: 1; }
-  .field input[type=range] { width: 100%; accent-color: var(--blue); }
-  .actions-row { display: flex; gap: 10px; margin-top: 6px; flex-wrap: wrap; }
-  .btn-test, .btn-clear {
-    border-radius: 999px; padding: 9px 18px; font-size: 14px; font-weight: 700;
-    cursor: pointer; border: 1px solid var(--border); background: #fff;
-  }
-  .btn-test { background: var(--blue); color: #fff; border-color: var(--blue); }
-  .btn-test:hover { background: #1a8cd8; }
-  .btn-clear:hover { background: #ffe0e3; border-color: #ffc2c8; color: var(--ng); }
-  .test-result { margin-top: 12px; font-size: 13px; padding: 10px 12px; border-radius: 10px; display: none; line-height: 1.6; }
-  .test-result.show { display: block; }
-  .test-result.ok { background: #e3f7ee; color: #00794f; }
-  .test-result.ng { background: #ffe0e3; color: #b8000f; }
-  .test-result.wait { background: #eef4f8; color: #3a4a56; }
-
-  /* ================= トースト ================= */
-  .toast {
-    position: fixed; left: 50%; bottom: 90px; transform: translateX(-50%) translateY(20px);
-    background: #0f1419; color: #fff; padding: 10px 18px; border-radius: 999px;
-    font-size: 13.5px; opacity: 0; pointer-events: none;
-    transition: .25s; z-index: 200; max-width: 90vw; text-align: center;
-  }
-  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-
-  @media (max-width: 1050px) { .aside { display: none; } }
-  @media (max-width: 750px) {
-    .sidebar { display: none; }
-    .main { max-width: 100%; border-right: none; padding-bottom: 74px; }
-    .mobile-nav { display: flex; }
-    .stat-grid { grid-template-columns: repeat(2, 1fr); }
-  }
+:root{
+  --blue:#1d9bf0; --blue-dark:#1a8cd8; --bg:#ffffff; --border:#e6e9ec;
+  --text:#0f1419; --sub:#536471; --like:#f91880; --rt:#00ba7c; --gold:#ff9500;
+  --card:#f7f9f9;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,"PingFang SC","Hiragino Sans","Noto Sans JP","Microsoft YaHei",sans-serif;
+  background:#fff;color:var(--text);display:flex;justify-content:center}
+.app{display:grid;grid-template-columns:260px 600px 320px;gap:0;min-height:100vh;width:100%;max-width:1240px}
+/* 左栏 */
+.left{border-right:1px solid var(--border);padding:16px 12px;position:sticky;top:0;height:100vh;overflow-y:auto}
+.logo{font-size:22px;font-weight:800;padding:8px 12px 20px;cursor:pointer}
+.logo span{color:var(--blue)}
+.nav-item{display:flex;align-items:center;gap:14px;padding:12px;border-radius:999px;font-size:18px;
+  cursor:pointer;color:var(--text);margin-bottom:4px}
+.nav-item:hover{background:var(--card)}
+.nav-item.active{font-weight:700;color:var(--blue)}
+.nav-item .ico{font-size:20px;width:26px;text-align:center}
+.profile-card{margin-top:20px;padding:14px;border:1px solid var(--border);border-radius:16px;background:var(--card)}
+.profile-card .nick{font-weight:700;font-size:16px}
+.profile-card .handle{color:var(--sub);font-size:13px}
+.profile-card .bio{font-size:13px;color:var(--sub);margin-top:6px}
+.stat-row{display:flex;gap:16px;margin-top:10px;font-size:13px;color:var(--sub)}
+.stat-row b{color:var(--text);font-size:15px;display:block}
+/* 中栏 */
+.main{border-right:1px solid var(--border);min-height:100vh}
+.main-head{position:sticky;top:0;background:rgba(255,255,255,.9);backdrop-filter:blur(8px);
+  border-bottom:1px solid var(--border);padding:14px 16px;font-size:18px;font-weight:800;z-index:5}
+.composer{border-bottom:1px solid var(--border);padding:14px 16px;display:flex;gap:10px}
+.avatar{width:44px;height:44px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;
+  justify-content:center;font-size:24px;color:#fff}
+.composer-body{flex:1}
+.composer textarea{width:100%;border:none;outline:none;resize:none;font-size:17px;font-family:inherit;
+  min-height:70px;padding-top:6px}
+.composer-toolbar{display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--border);padding-top:8px}
+.char-count{font-size:13px;color:var(--sub)}
+.char-count.over{color:var(--like);font-weight:700}
+.tweet-btn{background:var(--blue);color:#fff;border:none;border-radius:999px;padding:8px 22px;
+  font-size:15px;font-weight:700;cursor:pointer}
+.tweet-btn:hover{background:var(--blue-dark)}
+.tweet-btn:disabled{opacity:.5;cursor:not-allowed}
+.tweet{border-bottom:1px solid var(--border);padding:14px 16px;display:flex;gap:10px;animation:fadein .3s}
+@keyframes fadein{from{opacity:0;transform:translateY(-6px)}to{opacity:1}}
+.tweet .body{flex:1;min-width:0}
+.t-head{display:flex;gap:6px;align-items:baseline;flex-wrap:wrap}
+.t-head .name{font-weight:700;font-size:15px}
+.t-head .handle,.t-head .time{color:var(--sub);font-size:13px}
+.t-text{font-size:16px;line-height:1.6;margin-top:4px;white-space:pre-wrap;word-break:break-word}
+.t-actions{display:flex;gap:32px;margin-top:10px;color:var(--sub);font-size:13px}
+.t-actions span{cursor:pointer}
+.t-actions span:hover{color:var(--blue)}
+.level-badge{display:inline-block;font-size:12px;padding:2px 10px;border-radius:999px;margin-top:8px;font-weight:700}
+.lv-ok{background:#e8f5e9;color:#2e7d32}.lv-mid{background:#fff8e1;color:#f57f17}
+.lv-bad{background:#fff3e0;color:#e65100}.lv-wtf{background:#fce4ec;color:#c62828}
+.loading{color:var(--sub);font-size:14px;padding:8px 0}
+.replies{margin-top:12px;border-left:3px solid var(--border);padding-left:14px;display:flex;flex-direction:column;gap:12px}
+.reply{background:var(--card);border-radius:12px;padding:10px 12px;font-size:14px;display:flex;gap:10px}
+.reply .r-head{font-size:13px;margin-bottom:4px;display:flex;gap:6px;align-items:baseline;flex-wrap:wrap}
+.reply .r-name{font-weight:700}
+.reply .r-handle,.reply .r-time{color:var(--sub)}
+.reply .r-text{line-height:1.6;white-space:pre-wrap}
+.reply .r-exp{background:#fff;border-left:3px solid var(--gold);padding:6px 10px;margin-top:6px;
+  border-radius:0 8px 8px 0;color:#6d4c00;font-size:13px;line-height:1.6}
+.r-qt{border:1px dashed var(--rt);background:#f0faf5}
+.like-row{margin-top:8px;font-size:14px;color:var(--like);font-weight:700}
+.del-btn{margin-left:auto;color:var(--sub);font-size:12px;cursor:pointer;background:none;border:none}
+.del-btn:hover{color:var(--like)}
+.empty{padding:60px 20px;text-align:center;color:var(--sub)}
+.empty .big{font-size:46px;margin-bottom:12px}
+/* 右栏 */
+.right{padding:16px;position:sticky;top:0;height:100vh;overflow-y:auto}
+.panel{border:1px solid var(--border);border-radius:16px;margin-bottom:16px;overflow:hidden}
+.panel h3{padding:12px 16px;font-size:16px;border-bottom:1px solid var(--border)}
+.panel .row{padding:12px 16px;border-bottom:1px solid var(--border);cursor:pointer;font-size:14px}
+.panel .row:hover{background:var(--card)}
+.panel .row:last-child{border-bottom:none}
+.panel .row .t-jp{font-weight:700}
+.panel .row .t-zh{color:var(--sub);font-size:12px;margin-top:2px}
+.panel .row .t-tpl{color:var(--blue);font-size:12px;margin-top:4px}
+.f-row{display:flex;gap:10px;align-items:center;padding:10px 16px;border-bottom:1px solid var(--border)}
+.f-row:last-child{border-bottom:none}
+.f-row .f-info{flex:1;min-width:0}
+.f-row .f-name{font-size:14px;font-weight:700}
+.f-row .f-bio{font-size:12px;color:var(--sub)}
+.gear-btn{position:fixed;bottom:24px;right:24px;width:52px;height:52px;border-radius:50%;background:var(--text);
+  color:#fff;border:none;font-size:22px;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.25);z-index:50}
+.gear-btn:hover{transform:rotate(30deg);transition:.3s}
+/* 弹窗 */
+.modal-mask{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:100}
+.modal-mask.show{display:flex}
+.modal{background:#fff;border-radius:16px;width:480px;max-width:92vw;max-height:88vh;overflow-y:auto;padding:24px}
+.modal h2{font-size:19px;margin-bottom:16px}
+.field{margin-bottom:14px}
+.field label{display:block;font-size:13px;font-weight:700;margin-bottom:6px;color:var(--sub)}
+.field input,.field select{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:10px;font-size:14px;outline:none}
+.field input:focus{border-color:var(--blue)}
+.modal .btns{display:flex;gap:10px;margin-top:8px;flex-wrap:wrap}
+.btn{padding:9px 18px;border-radius:999px;border:none;font-size:14px;font-weight:700;cursor:pointer}
+.btn-primary{background:var(--blue);color:#fff}
+.btn-ghost{background:var(--card);color:var(--text)}
+.btn-danger{background:#fee;color:#c00}
+.modal .hint{font-size:12px;color:var(--sub);margin-top:10px;line-height:1.7}
+.test-result{font-size:13px;margin-top:8px;padding:8px 12px;border-radius:8px;display:none}
+.test-ok{display:block;background:#e8f5e9;color:#2e7d32}
+.test-err{display:block;background:#fee;color:#c00}
+.toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:var(--text);color:#fff;
+  padding:10px 22px;border-radius:999px;font-size:14px;z-index:200;display:none}
+.report{padding:20px}
+.report h4{margin:14px 0 8px;font-size:15px}
+.report .big-stats{display:flex;gap:20px;flex-wrap:wrap}
+.report .bs{background:var(--card);border-radius:12px;padding:12px 18px;text-align:center;flex:1;min-width:90px}
+.report .bs b{font-size:24px;display:block;color:var(--blue)}
+.bar-row{display:flex;align-items:center;gap:8px;font-size:13px;margin:4px 0}
+.bar-row .bar{height:10px;background:var(--blue);border-radius:5px;min-width:4px}
+.api-badge{font-size:11px;padding:2px 8px;border-radius:999px;margin-left:8px}
+.api-on{background:#e8f5e9;color:#2e7d32}.api-off{background:#fee;color:#c00}
+@media(max-width:1000px){.app{grid-template-columns:70px 1fr}.left .nav-item span.txt,.profile-card{display:none}.right{display:none}}
 </style>
 </head>
 <body>
 <div class="app">
-
-  <!-- 左サイドバー -->
-  <nav class="sidebar">
-    <div class="logo">🌸 にほんご<span>Twitter</span></div>
-    <button class="nav-item active" data-view="home">🏠 ホーム</button>
-    <button class="nav-item" data-view="notifications">
-      🔔 通知<span class="nav-badge" id="sideNotifBadge" hidden>0</span>
-    </button>
-    <button class="nav-item" data-view="trends">🔥 トレンド</button>
-    <button class="nav-item" data-view="report">📊 レポート</button>
-    <button class="nav-item" data-view="settings">⚙️ 設定</button>
-    <button class="btn-tweet" onclick="focusComposer()">つぶやく</button>
-    <div class="me">
-      <div class="avatar">😶</div>
-      <div>
-        <div class="name">あなた</div>
-        <div class="handle">@nihongo_learner</div>
+  <div class="left">
+    <div class="logo" onclick="switchTab('home')">🐦 にちぷ<span>れ</span></div>
+    <div class="nav-item active" data-tab="home" onclick="switchTab('home')"><span class="ico">🏠</span><span class="txt">ホーム</span></div>
+    <div class="nav-item" data-tab="notice" onclick="switchTab('notice')"><span class="ico">🔔</span><span class="txt">通知</span></div>
+    <div class="nav-item" data-tab="report" onclick="switchTab('report')"><span class="ico">📊</span><span class="txt">练习报告</span></div>
+    <div class="nav-item" onclick="openSettings()"><span class="ico">⚙️</span><span class="txt">設定</span></div>
+    <div class="profile-card">
+      <div class="nick" id="pf-nick">あなた</div>
+      <div class="handle" id="pf-handle">@you</div>
+      <div class="bio" id="pf-bio">日本語練習中 📝</div>
+      <div class="stat-row">
+        <div><b id="st-followers">100</b>粉丝</div>
+        <div><b id="st-likes">0</b>🍙</div>
+        <div><b id="st-posts">0</b>推文</div>
       </div>
     </div>
-  </nav>
+  </div>
 
-  <!-- メイン -->
-  <main class="main">
-    <header class="topbar">
-      <span id="topTitle">ホーム</span>
-      <span class="sub" id="topSub"></span>
-    </header>
-
-    <div class="mode-banner" id="modeBanner">
-      🔧 デモモードで動作中です。実際のAI添削を使うには
-      <a data-view="settings">設定</a> から API を入力してください。
-    </div>
-
-    <!-- ホーム -->
-    <section class="view active" id="view-home">
+  <div class="main">
+    <div class="main-head" id="main-head">ホーム</div>
+    <div id="home-view">
       <div class="composer">
-        <div class="avatar">😶</div>
+        <div class="avatar" style="background:#7856ff">🙂</div>
         <div class="composer-body">
-          <div class="prompt-chip" id="promptChip">
-            <span id="promptChipText"></span>
-            <button id="promptChipClear" title="解除">✕</button>
-          </div>
-          <textarea id="input" rows="1" placeholder="いまどうしてる？（日本語で書いてみよう）"></textarea>
-          <div class="composer-bar">
-            <span class="counter" id="counter">0 / 280</span>
-            <button id="postBtn" class="btn-post" disabled>投稿する</button>
+          <textarea id="tweet-input" placeholder="日本語でツイートしてみよう…（用日语发推，错了粉丝会温柔教你）" maxlength="280"></textarea>
+          <div class="composer-toolbar">
+            <span class="char-count" id="char-count">0 / 280</span>
+            <button class="tweet-btn" id="tweet-btn" onclick="postTweet()">ツイート</button>
           </div>
         </div>
       </div>
-      <div id="timeline"></div>
-    </section>
-
-    <!-- 通知 -->
-    <section class="view" id="view-notifications">
-      <div id="notifList"></div>
-    </section>
-
-    <!-- トレンド -->
-    <section class="view" id="view-trends">
-      <div class="section-pad">
-        <div class="sec-title">今日のお題</div>
-        <p class="sec-desc">毎日ひとつ、日本語で書く練習。気軽にどうぞ。</p>
-        <div class="daily-card">
-          <div class="daily-tag">DAILY PROMPT</div>
-          <div class="daily-ja" id="dailyJa"></div>
-          <div class="daily-zh" id="dailyZh"></div>
-          <div class="daily-actions">
-            <button class="btn-primary" id="useDaily">このお題で書く</button>
-            <span class="done-mark" id="dailyDone" hidden>✅ 今日はクリア</span>
-          </div>
-        </div>
-
-        <div class="sec-title">いま話題のタグ</div>
-        <p class="sec-desc">フォロワーがよく使う表現。タップで入力欄へ。</p>
-        <div id="trendList"></div>
-      </div>
-    </section>
-
-    <!-- レポート -->
-    <section class="view" id="view-report">
-      <div class="section-pad" id="reportBody"></div>
-    </section>
-  </main>
-
-  <!-- 右サイドバー -->
-  <aside class="aside">
-    <div class="card">
-      <div class="card-title">フォロワー</div>
-      <div class="followers-big" id="followerCount">0<span>人</span></div>
-      <div style="margin-top:10px" id="followerList"></div>
+      <div id="feed"></div>
     </div>
-    <div class="card">
-      <div class="card-title">応援メッセージ</div>
-      <p>ここは、間違えても大丈夫な場所です。</p>
-      <p>フォロワーは全員、あなたの練習を見守っています。</p>
-      <p style="color:#8b98a5;font-size:12px;margin-top:10px">
-        Ctrl / ⌘ + Enter でも投稿できます
-      </p>
-    </div>
-  </aside>
+    <div id="notice-view" style="display:none"></div>
+    <div id="report-view" style="display:none"></div>
+  </div>
 
+  <div class="right">
+    <div class="panel">
+      <h3>🔥 趋势话题（点击填入草稿）</h3>
+      <div id="trends"></div>
+    </div>
+    <div class="panel">
+      <h3>👥 关注者 <span class="api-badge api-off" id="api-badge">未配置 API</span></h3>
+      <div id="followers"></div>
+    </div>
+  </div>
 </div>
 
-<!-- モバイルナビ -->
-<nav class="mobile-nav">
-  <button data-view="home" class="active" title="ホーム">🏠</button>
-  <button data-view="notifications" title="通知">
-    🔔<span class="nav-badge" id="mobNotifBadge" hidden>0</span>
-  </button>
-  <button data-view="trends" title="トレンド">🔥</button>
-  <button data-view="report" title="レポート">📊</button>
-  <button data-view="settings" title="設定">⚙️</button>
-</nav>
+<button class="gear-btn" onclick="openSettings()" title="設定">⚙️</button>
 
-<!-- 設定モーダル -->
-<div class="modal-mask" id="settingsModal">
+<div class="modal-mask" id="settings-mask">
   <div class="modal">
-    <div class="modal-header">
-      <button class="icon-btn" id="closeSettings">✕</button>
-      <h2>設定</h2>
-      <button class="btn-save" id="saveSettings">保存</button>
+    <h2>⚙️ 設定</h2>
+    <div class="field"><label>你的日语昵称（ツイプロ名）</label><input id="set-nick" placeholder="例如：たろう"></div>
+    <div class="field"><label>一句话简介</label><input id="set-bio" placeholder="日本語練習中 📝"></div>
+    <hr style="border:none;border-top:1px solid var(--border);margin:16px 0">
+    <div class="field"><label>API Base URL（OpenAI 兼容，留空则用离线演示模式）</label>
+      <input id="set-base" placeholder="https://api.example.com/v1"></div>
+    <div class="field"><label>API Key</label><input id="set-key" type="password" placeholder="sk-..."></div>
+    <div class="field"><label>模型名</label><input id="set-model" placeholder="例如：gpt-4o-mini / kimi-k2"></div>
+    <div class="btns">
+      <button class="btn btn-primary" onclick="saveSettings()">保存</button>
+      <button class="btn btn-ghost" onclick="testAPI()">测试连接</button>
+      <button class="btn btn-danger" onclick="clearData()">清空数据</button>
+      <button class="btn btn-ghost" onclick="closeSettings()">关闭</button>
     </div>
-    <div class="modal-body">
-      <div class="section">
-        <div class="section-title">AI API 設定</div>
-        <p class="hint">
-          添削AIのAPIを設定します。設定はこのブラウザ（localStorage）に保存され、外部には送信されません。
-          OpenAI 互換エンドポイントに対応しています。
-        </p>
-        <div class="preset-row" id="presets">
-          <button data-preset="openrouter">OpenRouter</button>
-          <button data-preset="siliconflow">SiliconFlow</button>
-          <button data-preset="deepseek">DeepSeek</button>
-          <button data-preset="openai">OpenAI</button>
-        </div>
-        <label class="field">
-          <span>Base URL</span>
-          <input id="cfgBaseUrl" type="text" placeholder="https://openrouter.ai/api/v1">
-        </label>
-        <label class="field">
-          <span>API Key</span>
-          <div class="key-row">
-            <input id="cfgApiKey" type="password" placeholder="sk-..." autocomplete="off">
-            <button class="icon-btn" id="toggleKey" type="button" title="表示/非表示">👁</button>
-          </div>
-        </label>
-        <label class="field">
-          <span>モデル</span>
-          <input id="cfgModel" type="text" placeholder="例: deepseek/deepseek-chat-v3-0324:free">
-        </label>
-        <label class="field">
-          <span>Temperature: <b id="tempVal">0.8</b></span>
-          <input id="cfgTemp" type="range" min="0" max="1.5" step="0.1" value="0.8">
-        </label>
-        <div class="actions-row">
-          <button class="btn-test" id="testBtn" type="button">テスト接続</button>
-          <button class="btn-clear" id="clearBtn" type="button">API設定をクリア</button>
-        </div>
-        <div class="test-result" id="testResult"></div>
-      </div>
-      <div class="section">
-        <div class="section-title">データ</div>
-        <p class="hint">練習の記録（ツイート・通知・統計）はこの端末に保存されています。</p>
-        <div class="actions-row">
-          <button class="btn-clear" id="resetDataBtn" type="button">練習データをリセット</button>
-        </div>
-      </div>
-      <div class="section">
-        <div class="section-title">注意事項</div>
-        <p class="hint">
-          ブラウザから直接APIを呼ぶため、CORS 対応のプロバイダーが必要です。
-          OpenRouter / SiliconFlow はブラウザから使いやすいです。
-          OpenAI・DeepSeek 公式は CORS でブロックされることがあります。
-        </p>
-      </div>
+    <div class="test-result" id="test-result"></div>
+    <div class="hint">
+      · 数据只存在你自己的浏览器 localStorage 里，Key 不会上传到任何第三方（除了你填的 API 服务本身）。<br>
+      · 浏览器直连需要 API 服务允许跨域（CORS）；如果测试连接报跨域错误，请换支持 CORS 的接口或用代理。<br>
+      · 留空 API 时使用内置离线演示模式（反馈较简单，仅供体验玩法）。
     </div>
   </div>
 </div>
@@ -544,1000 +205,268 @@
 <div class="toast" id="toast"></div>
 
 <script>
-/* ============================================================
-   定数
-============================================================ */
-const PERSONA = {
-  '田中ゆかり': { handle:'@yukari_tanaka', emoji:'🌷', color:'#ffe3ec',
-    desc:'28・東京OL / 褒め上手' },
-  '佐藤ケンタ': { handle:'@kenta_saito',   emoji:'🎧', color:'#e3f0ff',
-    desc:'22・大学生 / 流行語' },
-  '山田ミサキ': { handle:'@misaki_yamada', emoji:'🍵', color:'#e8f5e9',
-    desc:'35・主婦 / 敬語と語感' },
-  '鈴木一郎':   { handle:'@ichiro_suzuki', emoji:'💻', color:'#ede7f6',
-    desc:'31・エンジニア / 文法' },
-  '高橋あい':   { handle:'@ai_takahashi',  emoji:'🌸', color:'#fff3e0',
-    desc:'19・アニオタ / アニメ台詞' },
-};
-const PERSONA_NAMES = Object.keys(PERSONA);
-
-const BADGE = {
-  correct:        ['✅', '完璧！'],
-  minor_errors:   ['⚠️', 'ちょっとだけ'],
-  major_errors:   ['❌', '直そう'],
-  unclear:        ['🤔', '聞き返し'],
-};
-const JUDGE_LABEL = {
-  correct:'完璧', minor_errors:'小さなミス',
-  major_errors:'要訂正', unclear:'聞き返し'
-};
-const JUDGE_COLOR = {
-  correct:'#00ba7c', minor_errors:'#d9a300',
-  major_errors:'#f4212e', unclear:'#4a7fd4'
-};
-
-const PRESETS = {
-  openrouter:  { baseUrl:'https://openrouter.ai/api/v1', model:'deepseek/deepseek-chat-v3-0324:free' },
-  siliconflow: { baseUrl:'https://api.siliconflow.cn/v1', model:'Qwen/Qwen2.5-7B-Instruct' },
-  deepseek:    { baseUrl:'https://api.deepseek.com/v1', model:'deepseek-chat' },
-  openai:      { baseUrl:'https://api.openai.com/v1', model:'gpt-4o-mini' },
-};
-
-/* 每日お題（日付でローテーション） */
-const DAILY_PROMPTS = [
-  { ja:'今日あったことを、三行で書いてみよう。', zh:'用三行写今天发生的事。' },
-  { ja:'好きな食べ物と、その理由を書いてみよう。', zh:'写喜欢的食物和理由。' },
-  { ja:'最近うれしかったことを、一つ教えて。', zh:'说一件最近让你开心的事。' },
-  { ja:'週末にしたいことを、三つ書いてみよう。', zh:'写三个周末想做的事。' },
-  { ja:'友だちを褒めるとき、なんて言う？', zh:'夸朋友的时候你会怎么说？' },
-  { ja:'今の気分を、天気にたとえると？', zh:'把现在的心情比作天气会是什么？' },
-  { ja:'行ってみたい場所と、その理由。', zh:'写想去的地方和理由。' },
-  { ja:'最近覚えた日本語を、使って一文。', zh:'用最近学会的日语造一个句子。' },
-  { ja:'朝ごはん、何食べた？', zh:'早饭吃了什么？' },
-  { ja:'「お疲れさま」を、別の言い方で。', zh:'把「お疲れさま」换个说法试试。' },
-  { ja:'今日の小さな目標を一つ。', zh:'写一个今天的小目标。' },
-  { ja:'好きな季節と、その理由。', zh:'写喜欢的季节和理由。' },
-  { ja:'コンビニでよく買うものは？', zh:'在便利店常买什么？' },
-  { ja:'最近見た映画やアニメの感想を一文で。', zh:'用一句话写最近看的电影或动漫感想。' },
+/* ========== 粉丝人设 ========== */
+const PERSONAS=[
+ {handle:"@yukari_tanaka",name:"田中ゆかり",emoji:"🌸",color:"#f4a7b9",bio:"28岁·东京OL·温柔点赞狂魔"},
+ {handle:"@kenta_saito",name:"佐藤ケンタ",emoji:"🔥",color:"#ff8c42",bio:"22岁·大阪·関西弁话痨大学生"},
+ {handle:"@misaki_yamada",name:"山田ミサキ",emoji:"🔍",color:"#7ec8e3",bio:"35岁·京都·敬语与语感警察"},
+ {handle:"@ichiro_suzuki",name:"鈴木一郎",emoji:"🤓",color:"#9b8aa6",bio:"31岁·程序员·结构化语法控"},
+ {handle:"@ai_takahashi",name:"高橋あい",emoji:"🎮",color:"#c084fc",bio:"19岁·动漫宅·甩台词陪练"}
+];
+const TRENDS=[
+ {jp:"#今日のごはん",zh:"今天吃了什么？",tpl:"今日のごはんは___です！"},
+ {jp:"#週末の予定",zh:"周末打算干嘛？",tpl:"週末は___する予定です"},
+ {jp:"#最近ハマってるもの",zh:"最近沉迷什么？",tpl:"最近___にハマってます"},
+ {jp:"#天気について",zh:"聊聊天气",tpl:"今日の天気は___ですね"},
+ {jp:"#日本語の質問",zh:"日语疑问求助",tpl:"___の使い方がよく分かりません…誰か教えて！"}
 ];
 
-/* トレンドタグ */
-const TRENDS = [
-  { cat:'日本語学習中', name:'#毎日日本語', count:'1.2万件のポスト' },
-  { cat:'表現',         name:'#敬語チャレンジ', count:'8,430件のポスト' },
-  { cat:'トレンド',     name:'#自然な日本語',   count:'6,120件のポスト' },
-  { cat:'若者言葉',     name:'#流行語メモ',     count:'3,780件のポスト' },
-  { cat:'アニメ',       name:'#アニメで日本語', count:'2,950件のポスト' },
-  { cat:'文法',         name:'#助詞の使い方',   count:'2,410件のポスト' },
-];
-
-/* ============================================================
-   AI プロンプト
-============================================================ */
-const SYSTEM_PROMPT = `あなたは日本語学習者向けSNS「にほんごTwitter」のフォロワー5人を演じます。
-ユーザーは日本語でツイートします。あなたは5人のうち内容に合う1〜3人が反応します。
-
-【出力形式】必ずJSONのみ。マークダウンや説明文は一切禁止。
-{
-  "judgement": "correct" | "minor_errors" | "major_errors" | "unclear",
-  "errorTags": ["助詞", "敬語"],
-  "likes": 0から15の整数,
-  "reactions": [
-    {
-      "name": "田中ゆかり",
-      "type": "reply" | "retweet",
-      "text": "日本語の返信内容",
-      "correction": null | {
-        "original": "原文の間違っている部分",
-        "fixed": "修正後の文",
-        "explanation": "中国語での解説",
-        "points": ["中国語の要点1", "中国語の要点2"]
-      }
-    }
-  ]
+/* ========== 状态 ========== */
+let S=load();
+function load(){
+ try{const s=JSON.parse(localStorage.getItem("nichipure"));if(s&&s.tweets)return s;}catch(e){}
+ return {tweets:[],stats:{followers:100,likes:0,posts:0,correct:0},tally:{},settings:{nick:"",bio:"日本語練習中 📝",base:"",key:"",model:""},welcome:false};
 }
+function save(){localStorage.setItem("nichipure",JSON.stringify(S));}
 
-【判定ルール】
-- correct: 完全に正しい。褒める返信1〜2件。時々retweetで「自然すぎる！」と褒める。likes 8〜15。
-- minor_errors: 小さなミス。返信1〜2件で、❌原文→✅修正＋中国語解説。likes 3〜8。
-- major_errors: 複数のミスや不自然さ。返信で訂正し、retweetで重点解説。likes 0〜3。
-- unclear: 意味が分からない。優しく簡単な日本語で聞き返す。correctionはnullでよい。likes 0〜2。
+/* ========== 界面渲染 ========== */
+function esc(s){const d=document.createElement("div");d.textContent=s;return d.innerHTML;}
+function pOf(handle){return PERSONAS.find(p=>p.handle===handle)||PERSONAS[0];}
+function avatarHTML(p,cls){return `<div class="avatar ${cls||""}" style="background:${p.color}">${p.emoji}</div>`;}
 
-【5人のフォロワー】
-- 田中ゆかり @yukari_tanaka（28・東京OL）: 優しく褒め上手。「いいね」魔。自然な褒め言葉をくれる。
-- 佐藤ケンタ @kenta_saito（22・大学生）: 元気でノリがいい。若者言葉や流行語を引用RTで解説。
-- 山田ミサキ @misaki_yamada（35・主婦）: 細やか。敬語と語感に厳しく、返信が長め。
-- 鈴木一郎 @ichiro_suzuki（31・エンジニア）: 文法マニア。引用RTで構造的に分解して説明。
-- 高橋あい @ai_takahashi（19・アニオタ）: アニメのセリフを交えて、楽しく練習させる。
-
-【絶対ルール】
-- reactions の text は必ず日本語。中国語は correction の explanation と points のみ。
-- 必ず励ます。否定・見下し・不安にさせる表現は絶対禁止。
-- 「間違えても大丈夫」と伝わる温かいトーン。
-- errorTags は中国語で、2〜4個。例: 助詞, 敬語, 時制, 語彙, 語順, 自然さ, 丁寧さ。
-- 同じ人名を2回使わない。reactions は1〜3件。`;
-
-/* ============================================================
-   ストレージ
-============================================================ */
-const CFG_KEY = 'nihongo_twitter_cfg_v2';
-const DB_KEY  = 'nihongo_twitter_db_v2';
-const MAX_TWEETS = 200;
-
-let cfg = loadConfig();
-let db  = loadDB();
-
-function defaultDB() {
-  return {
-    tweets: [],
-    followers: 12,
-    notifications: [],
-    stats: { total:0, byJ:{ correct:0, minor_errors:0, major_errors:0, unclear:0 }, errorTags:{} },
-    activity: [],      // { t: number, j: string }
-    donePrompts: [],   // 'YYYY-MM-DD'
-  };
+function renderFollowers(){
+ document.getElementById("followers").innerHTML=PERSONAS.map(p=>
+  `<div class="f-row">${avatarHTML(p)}<div class="f-info"><div class="f-name">${p.name} <span style="color:var(--sub);font-weight:400;font-size:12px">${p.handle}</span></div><div class="f-bio">${p.bio}</div></div></div>`).join("");
 }
-function loadConfig() {
-  try {
-    const c = JSON.parse(localStorage.getItem(CFG_KEY)) || {};
-    return { baseUrl:c.baseUrl||'', apiKey:c.apiKey||'', model:c.model||'', temperature:c.temperature ?? 0.8 };
-  } catch { return { baseUrl:'', apiKey:'', model:'', temperature:0.8 }; }
+function renderTrends(){
+ document.getElementById("trends").innerHTML=TRENDS.map((t,i)=>
+  `<div class="row" onclick="useTrend(${i})"><div class="t-jp">${t.jp}</div><div class="t-zh">${t.zh}</div><div class="t-tpl">💬 ${esc(t.tpl)}</div></div>`).join("");
 }
-function loadDB() {
-  try {
-    const raw = JSON.parse(localStorage.getItem(DB_KEY));
-    if (!raw) return defaultDB();
-    const d = Object.assign(defaultDB(), raw);
-    d.stats = Object.assign(defaultDB().stats, raw.stats || {});
-    d.stats.byJ = Object.assign(defaultDB().stats.byJ, (raw.stats||{}).byJ || {});
-    d.stats.errorTags = Object.assign({}, (raw.stats||{}).errorTags || {});
-    d.tweets = Array.isArray(raw.tweets) ? raw.tweets : [];
-    d.notifications = Array.isArray(raw.notifications) ? raw.notifications : [];
-    d.activity = Array.isArray(raw.activity) ? raw.activity : [];
-    d.donePrompts = Array.isArray(raw.donePrompts) ? raw.donePrompts : [];
-    return d;
-  } catch { return defaultDB(); }
+function useTrend(i){
+ const ta=document.getElementById("tweet-input");ta.value=TRENDS[i].tpl;ta.focus();updateCount();
+ switchTab("home");toast("已填入草稿，把 ___ 换成你自己的内容吧");
 }
-function saveDB() {
-  try {
-    if (db.tweets.length > MAX_TWEETS) db.tweets = db.tweets.slice(0, MAX_TWEETS);
-    if (db.notifications.length > 120) db.notifications = db.notifications.slice(0, 120);
-    if (db.activity.length > 400) db.activity = db.activity.slice(-400);
-    localStorage.setItem(DB_KEY, JSON.stringify(db));
-  } catch (e) { console.warn('保存失敗', e); }
+function updateStats(){
+ document.getElementById("st-followers").textContent=S.stats.followers;
+ document.getElementById("st-likes").textContent=S.stats.likes;
+ document.getElementById("st-posts").textContent=S.stats.posts;
+ const badge=document.getElementById("api-badge");
+ if(S.settings.key){badge.textContent="API 已连接";badge.className="api-badge api-on";}
+ else{badge.textContent="离线演示模式";badge.className="api-badge api-off";}
+ const nick=S.settings.nick||"あなた";
+ document.getElementById("pf-nick").textContent=nick;
+ document.getElementById("pf-handle").textContent="@"+(nick.replace(/\s+/g,"_")||"you");
+ document.getElementById("pf-bio").textContent=S.settings.bio||"日本語練習中 📝";
 }
-function saveConfig(c) {
-  cfg = c;
-  localStorage.setItem(CFG_KEY, JSON.stringify(c));
-  updateModeBanner();
-}
-function hasConfig() { return !!(cfg.baseUrl && cfg.apiKey && cfg.model); }
-
-/* ============================================================
-   ユーティリティ
-============================================================ */
-function escapeHTML(s) {
-  return String(s ?? '').replace(/[&<>"']/g, c => ({
-    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
-  }[c]));
-}
-function uid() {
-  return (window.crypto && crypto.randomUUID)
-    ? crypto.randomUUID()
-    : 'id-' + Date.now() + '-' + Math.random().toString(36).slice(2);
-}
-function timeAgo(ts) {
-  const s = (Date.now() - ts) / 1000;
-  if (s < 60) return 'たった今';
-  if (s < 3600) return Math.floor(s/60) + '分前';
-  if (s < 86400) return Math.floor(s/3600) + '時間前';
-  return Math.floor(s/86400) + '日前';
-}
-function todayKey(d = new Date()) {
-  const p = n => String(n).padStart(2,'0');
-  return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`;
-}
-function dayOfYear(d = new Date()) {
-  const start = new Date(d.getFullYear(), 0, 0);
-  return Math.floor((d - start) / 86400000);
-}
-function toast(msg) {
-  const el = document.getElementById('toast');
-  el.textContent = msg;
-  el.classList.add('show');
-  clearTimeout(toast._t);
-  toast._t = setTimeout(() => el.classList.remove('show'), 2400);
-}
-
-/* ============================================================
-   ビュー切替
-============================================================ */
-const VIEW_TITLES = {
-  home: 'ホーム', notifications: '通知', trends: 'トレンド',
-  report: 'レポート', settings: '設定'
-};
-let currentView = 'home';
-
-function showView(name) {
-  if (name === 'settings') { openSettings(); return; }
-  currentView = name;
-  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-  const v = document.getElementById('view-' + name);
-  if (v) v.classList.add('active');
-
-  document.querySelectorAll('[data-view]').forEach(b => {
-    b.classList.toggle('active', b.dataset.view === name && (b.classList.contains('nav-item') || b.classList.contains('mobile-nav') || b.tagName === 'BUTTON'));
-  });
-  // サイドバーとモバイルナビの active を正しく
-  document.querySelectorAll('.nav-item').forEach(b => b.classList.toggle('active', b.dataset.view === name));
-  document.querySelectorAll('.mobile-nav button').forEach(b => b.classList.toggle('active', b.dataset.view === name));
-
-  document.getElementById('topTitle').textContent = VIEW_TITLES[name] || 'ホーム';
-  document.getElementById('modeBanner').classList.toggle('show', name === 'home' && !hasConfig());
-
-  if (name === 'notifications') { markAllRead(); renderNotifications(); }
-  if (name === 'trends') renderTrends();
-  if (name === 'report') renderReport();
-  updateBadges();
-  window.scrollTo({ top: 0, behavior: 'instant' in window ? 'instant' : 'auto' });
-}
-
-document.addEventListener('click', e => {
-  const btn = e.target.closest('[data-view]');
-  if (btn) { e.preventDefault(); showView(btn.dataset.view); }
-});
-
-/* ============================================================
-   バッジ（未読通知）
-============================================================ */
-function unreadCount() {
-  return db.notifications.filter(n => !n.read).length;
-}
-function updateBadges() {
-  const n = unreadCount();
-  ['sideNotifBadge','mobNotifBadge'].forEach(id => {
-    const el = document.getElementById(id);
-    if (!el) return;
-    el.hidden = n === 0;
-    el.textContent = n > 99 ? '99+' : String(n);
-  });
-}
-function markAllRead() {
-  let changed = false;
-  db.notifications.forEach(n => { if (!n.read) { n.read = true; changed = true; } });
-  if (changed) saveDB();
-  updateBadges();
-}
-
-/* ============================================================
-   レンダリング：ツイート
-============================================================ */
-function badgeHTML(j) {
-  if (!j || !BADGE[j]) return '';
-  const [icon, label] = BADGE[j];
-  return `<span class="badge b-${j}">${icon} ${label}</span>`;
-}
-function correctionHTML(c) {
-  if (!c || !c.fixed) return '';
-  const hasOrig = c.original && String(c.original).trim();
-  return `
-    <div class="correction">
-      ${hasOrig ? `<div class="corr-line ng">
-        <span class="mark">❌</span><span class="orig">${escapeHTML(c.original)}</span>
-      </div>` : ''}
-      <div class="corr-line ok">
-        <span class="mark">✅</span><span class="fixed">${escapeHTML(c.fixed)}</span>
-      </div>
-      ${c.explanation ? `<div class="explain">${escapeHTML(c.explanation)}</div>` : ''}
-      ${Array.isArray(c.points) && c.points.length
-        ? `<ul class="points">${c.points.map(p => `<li>${escapeHTML(p)}</li>`).join('')}</ul>`
-        : ''}
-    </div>`;
-}
-function personaOf(name) {
-  return PERSONA[name] || { handle:'@someone', emoji:'🙂', color:'#eee', desc:'' };
-}
-function replyHTML(r) {
-  const p = personaOf(r.name);
-  return `
-    <div class="reply">
-      <div class="avatar" style="background:${p.color}">${p.emoji}</div>
-      <div class="reply-body">
-        <div class="meta">
-          <span class="name">${escapeHTML(r.name)}</span>
-          <span class="handle">${p.handle}</span>
-          <span class="dot">·</span>
-          <span class="time">たった今</span>
-        </div>
-        <div class="text">${escapeHTML(r.text)}</div>
-        ${correctionHTML(r.correction)}
-      </div>
-    </div>`;
-}
-function retweetHTML(r, originalText) {
-  const p = personaOf(r.name);
-  return `
-    <div class="reply rt">
-      <div class="avatar" style="background:${p.color}">${p.emoji}</div>
-      <div class="reply-body">
-        <div class="meta">
-          <span class="name">${escapeHTML(r.name)}</span>
-          <span class="handle">${p.handle}</span>
-          <span class="rt-label">🔁 引用リツイート</span>
-        </div>
-        <div class="text">${escapeHTML(r.text)}</div>
-        <div class="quote">
-          <div class="meta">
-            <span class="avatar tiny">😶</span>
-            <span class="name">あなた</span>
-            <span class="handle">@nihongo_learner</span>
-          </div>
-          <div class="text">${escapeHTML(originalText)}</div>
-        </div>
-        ${correctionHTML(r.correction)}
-      </div>
-    </div>`;
-}
-function tweetHTML(t) {
-  const reactions = t.reactions || [];
-  const replyCount = reactions.filter(r => r.type === 'reply').length;
-  const rtCount    = reactions.filter(r => r.type === 'retweet').length;
-  const likes      = t.likes || 0;
-
-  return `
-  <article class="tweet">
-    <div class="avatar">😶</div>
-    <div class="tweet-body">
-      <div class="meta">
-        <span class="name">あなた</span>
-        <span class="handle">@nihongo_learner</span>
-        <span class="dot">·</span>
-        <span class="time">${timeAgo(t.time)}</span>
-        ${badgeHTML(t.judgement)}
-      </div>
-      <div class="text">${escapeHTML(t.text)}</div>
-
-      ${t.pending ? `
-        <div class="loading">
-          <div class="dots"><span></span><span></span><span></span></div>
-          フォロワーが読んでいます…
-        </div>` : ''}
-
-      ${t.error ? `<div class="error">⚠️ ${escapeHTML(t.error)}</div>` : ''}
-
-      ${!t.pending ? `
-        <div class="actions">
-          <span class="act">💬 ${replyCount || ''}</span>
-          <span class="act ${rtCount ? 'rt' : ''}">🔁 ${rtCount || ''}</span>
-          <span class="act ${likes ? 'liked' : ''}">${likes ? '❤️' : '🤍'} ${likes || ''}</span>
-        </div>` : ''}
-
-      ${reactions.length ? `
-        <div class="replies">
-          ${reactions.map(r =>
-            r.type === 'retweet' ? retweetHTML(r, t.text) : replyHTML(r)
-          ).join('')}
-        </div>` : ''}
-    </div>
-  </article>`;
-}
-function renderHome() {
-  document.getElementById('timeline').innerHTML =
-    db.tweets.length
-      ? db.tweets.map(tweetHTML).join('')
-      : `<div style="padding:40px 20px;text-align:center;color:#536471;font-size:14px;line-height:1.9">
-           まだ投稿がありません。<br>
-           日本語でつぶやいてみましょう。<br>
-           <span style="color:#8b98a5;font-size:12.5px">間違えても、フォロワーは優しく教えてくれます。</span>
-         </div>`;
-  renderAside();
-}
-
-/* ============================================================
-   レンダリング：通知
-============================================================ */
-function renderNotifications() {
-  const list = document.getElementById('notifList');
-  if (!db.notifications.length) {
-    list.innerHTML = `<div class="empty-note" style="margin:16px">
-      通知はまだありません。<br>投稿すると、フォロワーが反応してくれます。
-    </div>`;
-    return;
+const LV={ "✅":["lv-ok","完全正确！"], "🟡":["lv-mid","小错误，已经很接近啦"], "🟠":["lv-bad","有几处要修，粉丝来讲解"], "🔴":["lv-wtf","粉丝们没看懂，温柔确认中"] };
+function renderFeed(){
+ const feed=document.getElementById("feed");
+ if(!S.tweets.length){feed.innerHTML=`<div class="empty"><div class="big">🐤</div>还没有推文。<br>用上面的输入框发一条日语推文，粉丝们在等你哦！</div>`;return;}
+ feed.innerHTML=S.tweets.map(t=>{
+  let h=`<div class="tweet"><div class="avatar" style="background:#7856ff">🙂</div><div class="body">
+   <div class="t-head"><span class="name">${esc(S.settings.nick||"あなた")}</span>
+   <span class="handle">@${(S.settings.nick||"you").replace(/\s+/g,"_")}</span>
+   <span class="time">· ${t.time}</span>
+   <button class="del-btn" onclick="delTweet('${t.id}')">删除</button></div>
+   <div class="t-text">${esc(t.text)}</div>`;
+  if(t.loading){h+=`<div class="loading">🍙 粉丝们正在回复…</div>`;}
+  else if(t.res){
+   const lv=LV[t.res.level]||LV["🟡"];
+   h+=`<span class="level-badge ${lv[0]}">${t.res.level} ${lv[1]}</span>`;
+   if(t.res.likes>0)h+=`<div class="like-row">🍙 × ${t.res.likes}　田中ゆかり 等人</div>`;
+   const all=[...(t.res.replies||[]).map(r=>({...r,qt:false})),...(t.res.quote_rts||[]).map(r=>({...r,qt:true}))];
+   if(all.length){
+    h+=`<div class="replies">`+all.map(r=>{
+     const p=pOf(r.handle);
+     return `<div class="reply ${r.qt?"r-qt":""}">${avatarHTML(p)}
+      <div style="flex:1;min-width:0">
+      <div class="r-head"><span class="r-name">${p.name}</span><span class="r-handle">${p.handle}</span><span class="r-time">· たった今</span>${r.qt?'<span style="color:var(--rt);font-size:12px">🔁 引用转推</span>':""}</div>
+      <div class="r-text">${esc(r.text)}</div>
+      ${r.explanation?`<div class="r-exp">💡 ${esc(r.explanation)}</div>`:""}
+      </div></div>`;
+    }).join("")+`</div>`;
+   }
   }
-  list.innerHTML = db.notifications.map(n => {
-    const p = personaOf(n.name);
-    const head = n.type === 'follow'
-      ? `<b>${escapeHTML(n.name)}</b> さんがフォローしました`
-      : n.type === 'retweet'
-        ? `<b>${escapeHTML(n.name)}</b> さんがリツイートしました`
-        : `<b>${escapeHTML(n.name)}</b> さんが返信しました`;
-    return `
-      <div class="notif ${n.read ? '' : 'unread'}">
-        <div class="avatar" style="background:${p.color}">${p.emoji}</div>
-        <div class="notif-body">
-          <div class="notif-head">${head} · ${timeAgo(n.time)}</div>
-          <div class="notif-text">${escapeHTML(n.text || '')}</div>
-        </div>
-      </div>`;
-  }).join('');
+  h+=`</div></div>`;return h;
+ }).join("");
+}
+function renderNotice(){
+ const box=document.getElementById("notice-view");
+ let items=[];
+ S.tweets.forEach(t=>{ if(!t.res)return;
+  if(t.res.likes>0)items.push(`<div class="tweet"><div class="avatar" style="background:var(--like)">🍙</div><div class="body"><b>田中ゆかり</b> 和其他人给你的推文「${esc(t.text.slice(0,24))}…」点了 ${t.res.likes} 个心心</div></div>`);
+  (t.res.replies||[]).forEach(r=>{const p=pOf(r.handle);items.push(`<div class="tweet">${avatarHTML(p)}<div class="body"><b>${p.name}</b> <span style="color:var(--sub)">${p.handle}</span> 回复了你：${esc(r.text.slice(0,60))}${r.text.length>60?"…":""}</div></div>`);});
+  (t.res.quote_rts||[]).forEach(r=>{const p=pOf(r.handle);items.push(`<div class="tweet">${avatarHTML(p)}<div class="body"><b>${p.name}</b> <span style="color:var(--sub)">${p.handle}</span> <span style="color:var(--rt)">🔁 引用转推</span> 了你的推文并讲解了语法</div></div>`);});
+ });
+ box.innerHTML=items.length?items.join(""):`<div class="empty"><div class="big">🔔</div>还没有通知，发一条日语推文试试？</div>`;
+}
+function renderReport(){
+ const v=document.getElementById("report-view");
+ const s=S.stats,rate=s.posts?Math.round(s.correct/s.posts*100):0;
+ const tallyArr=Object.entries(S.tally).sort((a,b)=>b[1]-a[1]);
+ const max=tallyArr.length?tallyArr[0][1]:1;
+ v.innerHTML=`<div class="report">
+  <h4>📊 総合练习报告</h4>
+  <div class="big-stats">
+   <div class="bs"><b>${s.posts}</b>推文</div>
+   <div class="bs"><b>${s.correct}</b>完全正确</div>
+   <div class="bs"><b>${rate}%</b>正确率</div>
+   <div class="bs"><b>${s.likes}</b>🍙 获赞</div>
+   <div class="bs"><b>${s.followers}</b>粉丝</div>
+  </div>
+  <h4>🔍 高频错误类型</h4>
+  ${tallyArr.length?tallyArr.map(([k,n])=>`<div class="bar-row"><span style="width:70px">${k}</span><span class="bar" style="width:${Math.round(n/max*180)}px"></span><span>× ${n}</span></div>`).join(""):"<p style='color:var(--sub);font-size:14px'>还没有记录，多发推就会有统计～</p>"}
+  <h4>💡 学习建议</h4>
+  <p style="font-size:14px;line-height:1.8;color:var(--sub)">${
+    !s.posts?"先发出第一条日语推文吧！":"" }
+    ${tallyArr.length?`你最容易在「${tallyArr[0][0]}」上出错，建议针对性地复习一下这个语法点，然后再用趋势话题练几条。`:"目前错误记录很少，保持这个节奏！"}
+    ${rate>=60&&s.posts>=5?"正确率不错，可以试试更复杂的句子，比如加入从句或敬语。":""}</p>
+  <p style="font-size:13px;color:var(--sub);margin-top:12px">高橋あいより：「${s.posts?"がんばってるね〜！":"はじめの一歩、だいじょうぶ！わたしがついてるよ！"}」🎮</p>
+ </div>`;
+}
+function switchTab(tab){
+ ["home","notice","report"].forEach(t=>{
+  document.getElementById(t+"-view").style.display=t===tab?"block":"none";
+  document.querySelector(`.nav-item[data-tab="${t}"]`).classList.toggle("active",t===tab);
+ });
+ document.getElementById("main-head").textContent={home:"ホーム",notice:"通知",report:"练习报告"}[tab];
+ if(tab==="notice")renderNotice();if(tab==="report")renderReport();
+}
+function toast(msg){const t=document.getElementById("toast");t.textContent=msg;t.style.display="block";clearTimeout(t._h);t._h=setTimeout(()=>t.style.display="none",2600);}
+
+/* ========== 发推流程 ========== */
+function nowStr(){const d=new Date();return `${d.getMonth()+1}月${d.getDate()}日`;}
+async function postTweet(){
+ const ta=document.getElementById("tweet-input"),text=ta.value.trim();
+ if(!text){toast("先写点什么吧");return;}
+ if(text.length>280){toast("超过 280 字啦");return;}
+ const id="t"+Date.now();
+ S.tweets.unshift({id,text,time:nowStr(),loading:true,res:null});
+ S.stats.posts++;save();ta.value="";updateCount();renderFeed();updateStats();
+ let res;
+ if(S.settings.key){ try{res=await callLLM(text);}catch(e){
+   S.tweets.find(t=>t.id===id).loading=false;save();renderFeed();
+   toast("API 调用失败："+(e.message||e)+"（可到设置里检查，或先切离线演示）");return; } }
+ else res=offlineDemo(text);
+ const tw=S.tweets.find(t=>t.id===id);
+ tw.loading=false;tw.res=res;
+ S.stats.likes+=res.likes||0;
+ if(res.level==="✅"){S.stats.correct++;if(S.stats.posts%3===0)S.stats.followers++;}
+ (res.error_types||[]).forEach(k=>{S.tally[k]=(S.tally[k]||0)+1;});
+ save();renderFeed();updateStats();
+ toast(res.level==="✅"?"🍙 完全正确！粉丝狂点心中":"💬 粉丝回复了你，看看纠正吧");
+}
+function delTweet(id){S.tweets=S.tweets.filter(t=>t.id!==id);save();renderFeed();toast("已删除");}
+function updateCount(){const n=document.getElementById("tweet-input").value.length;const c=document.getElementById("char-count");c.textContent=n+" / 280";c.classList.toggle("over",n>280);}
+
+/* ========== LLM 调用 ========== */
+function systemPrompt(){
+ return `你是「日推练习场」应用里所有日本粉丝的人格集合。用户是中文母语的日语学习者，在模拟推特上发日语推文练习。规则：
+1. 粉丝人设（严格遵守）：
+🌸田中ゆかり@yukari_tanaka：28岁东京OL，温柔，爱夸人爱点赞。
+🔥佐藤ケンタ@kenta_saito：22岁大阪大学生，関西弁口癖（やで／ほんま），活泼话痨，爱讲地道表达。
+🔍山田ミサキ@misaki_yamada：35岁京都主妇，心细，专盯敬语助词语感，纠正最详细。
+🤓鈴木一郎@ichiro_suzuki：31岁程序员，语法控，爱做结构化拆解，emoji少。
+🎮高橋あい@ai_takahashi：19岁动漫宅，活泼，会提动漫台词。
+2. 判定用户推文等级：✅完全正确 / 🟡仅1处小错 / 🟠2处以上错误或不自然 / 🔴基本看不懂。
+3. 互动规则：粉丝正文只说日语；每条纠正须附中文讲解（讲清规则+为什么错）。永远先扬后抑、温柔鼓励，禁止打击。🔴时不要逐条纠正，用简单日语温柔确认意思并给正确示范。
+4. 数量规则：✅→likes 15~40、1~2条夸回复；🟡→likes 3~8、1~2条纠正回复；🟠→likes 0~3、2~3条纠正回复+1条引用转推讲解；🔴→likes 2~5、1~2条温柔确认回复。引用转推一般来自鈴木一郎或佐藤ケンタ。
+5. 只输出一个 JSON 对象（不要markdown代码块），格式：
+{"level":"🟡","likes":6,"replies":[{"handle":"@misaki_yamada","text":"日语正文（含❌原文→✅修正）","explanation":"💡中文讲解"}],"quote_rts":[{"handle":"@ichiro_suzuki","text":"引用转推讲解正文"}],"error_types":["助詞"]}
+error_types 从：助詞/動詞変形/時制/敬語/語彙/語順/その他 中选。用户推文：`;
+}
+async function callLLM(text){
+ const base=S.settings.base.replace(/\/+$/,"")||"https://api.openai.com/v1";
+ const r=await fetch(base+"/chat/completions",{method:"POST",
+  headers:{"Content-Type":"application/json","Authorization":"Bearer "+S.settings.key},
+  body:JSON.stringify({model:S.settings.model||"gpt-4o-mini",
+   messages:[{role:"system",content:systemPrompt()+text}],
+   temperature:0.8,max_tokens:1200})});
+ if(!r.ok){const e=await r.text().catch(()=> "");throw new Error("HTTP "+r.status+(e?"："+e.slice(0,120):""));}
+ const j=await r.json();
+ let content=j.choices&&j.choices[0]&&j.choices[0].message&&j.choices[0].message.content||"";
+ content=content.replace(/```json|```/g,"").trim();
+ const m=content.match(/\{[\s\S]*\}/);
+ if(!m)throw new Error("模型没有返回有效 JSON");
+ const res=JSON.parse(m[0]);
+ return normalizeRes(res);
+}
+function normalizeRes(res){
+ const okH=PERSONAS.map(p=>p.handle);
+ (res.replies||[]).forEach(r=>{if(!okH.includes(r.handle))r.handle=okH[2];});
+ (res.quote_rts||[]).forEach(r=>{if(!okH.includes(r.handle))r.handle=okH[3];});
+ if(!res.level||!LV[res.level])res.level="🟡";
+ res.likes=Math.max(0,Math.min(99,parseInt(res.likes)||0));
+ return res;
 }
 
-/* ============================================================
-   レンダリング：トレンド
-============================================================ */
-function currentPrompt() {
-  const idx = dayOfYear() % DAILY_PROMPTS.length;
-  return { ...DAILY_PROMPTS[idx], key: todayKey(), idx };
-}
-function renderTrends() {
-  const p = currentPrompt();
-  document.getElementById('dailyJa').textContent = p.ja;
-  document.getElementById('dailyZh').textContent = p.zh;
-  const done = db.donePrompts.includes(p.key);
-  document.getElementById('dailyDone').hidden = !done;
-  document.getElementById('useDaily').disabled = false;
-
-  document.getElementById('trendList').innerHTML = TRENDS.map(t => `
-    <div class="trend-item" data-tag="${escapeHTML(t.name)}" style="cursor:pointer">
-      <div class="trend-cat">${escapeHTML(t.cat)}</div>
-      <div class="trend-name">${escapeHTML(t.name)}</div>
-      <div class="trend-count">${escapeHTML(t.count)}</div>
-    </div>
-  `).join('');
-
-  document.querySelectorAll('.trend-item').forEach(el => {
-    el.addEventListener('click', () => {
-      insertToComposer(el.dataset.tag + ' ');
-      showView('home');
-      focusComposer();
-    });
-  });
-
-  document.getElementById('useDaily').onclick = () => {
-    activePromptKey = p.key;
-    document.getElementById('promptChipText').textContent = '今日のお題：' + p.ja;
-    document.getElementById('promptChip').classList.add('show');
-    showView('home');
-    focusComposer();
-  };
+/* ========== 离线演示模式 ========== */
+function offlineDemo(text){
+ const issues=[];
+ if(/で[^、。]*で/.test(text))issues.push({type:"助詞",tip:"一句话里两个「で」连用会显得头重脚轻，可以把长定语先说、地点状语后移。"});
+ if(!/(です|ます|だ|ですね|ました|ません)/.test(text))issues.push({type:"時制",tip:"句尾加「です／ます」会让整句更礼貌自然（だ体适合熟人）。"});
+ if(/受け取ります/.test(text)&&!/に行き/.test(text))issues.push({type:"語彙",tip:"去某地自取要说「受け取りに行きます」，单说「受け取ります」像「它自己会寄到」。"});
+ const praise="いいですね！よく書けてます";
+ if(!issues.length)return {level:"✅",likes:18+Math.floor(Math.random()*15),
+  replies:[{handle:"@yukari_tanaka",text:praise+"🌸",explanation:""},
+   {handle:"@ai_takahashi",text:"めっちゃ自然！さすが！",explanation:""}],
+  quote_rts:[],error_types:[]};
+ if(issues.length===1)return {level:"🟡",likes:3+Math.floor(Math.random()*5),
+  replies:[{handle:"@misaki_yamada",text:"よく書けてますよ〜！ひとつだけ："+text+"\n💡【离线演示】"+issues[0].tip,explanation:issues[0].tip},
+   {handle:"@yukari_tanaka",text:"それ以外はバッチリです！",explanation:""}],
+  quote_rts:[],error_types:[issues[0].type]};
+ return {level:"🟠",likes:1,
+  replies:[{handle:"@yukari_tanaka",text:"だいじょうぶ！ひとつずつ直していこう🌸",explanation:""},
+   {handle:"@misaki_yamada",text:"💡【离线演示】\n"+issues.map(i=>"・"+i.tip).join("\n"),explanation:issues.map(i=>i.tip).join("；")}],
+  quote_rts:[{handle:"@ichiro_suzuki",text:"【离线演示】配置 API 后这里会给出完整的结构化语法讲解。"}],
+  error_types:issues.map(i=>i.type)};
 }
 
-/* ============================================================
-   レンダリング：レポート
-============================================================ */
-function renderReport() {
-  const now = Date.now();
-  const WEEK = 7 * 86400000;
-  const recent = db.activity.filter(a => now - a.t <= WEEK);
-  const total = recent.length;
-  const byJ = { correct:0, minor_errors:0, major_errors:0, unclear:0 };
-  recent.forEach(a => { if (byJ[a.j] != null) byJ[a.j]++; });
-
-  const correctRate = total ? Math.round((byJ.correct / total) * 100) : 0;
-  const avgPerDay = total ? (total / 7).toFixed(1) : '0';
-
-  // 直近7日の errorTags 集計（stats 全体から。厳密な週次タグは保存していないため全体傾向）
-  const tags = Object.entries(db.stats.errorTags || {})
-    .sort((a,b) => b[1] - a[1]).slice(0, 6);
-  const maxTag = tags.length ? tags[0][1] : 1;
-
-  const allTweets = db.stats.total;
-  const allCorrect = db.stats.byJ.correct;
-
-  const body = document.getElementById('reportBody');
-
-  if (total === 0 && allTweets === 0) {
-    body.innerHTML = `
-      <div class="sec-title">今週の練習レポート</div>
-      <p class="sec-desc">直近7日間の記録です。</p>
-      <div class="empty-note">
-        まだ記録がありません。<br>
-        1回投稿すると、ここに練習の記録がたまっていきます。<br>
-        <span style="color:#8b98a5;font-size:12.5px">最初の一歩、気軽にどうぞ。</span>
-      </div>`;
-    return;
-  }
-
-  body.innerHTML = `
-    <div class="sec-title">今週の練習レポート</div>
-    <p class="sec-desc">直近7日間の記録です。無理せず、少しずつ。</p>
-
-    <div class="stat-grid">
-      <div class="stat-box">
-        <div class="num">${total}</div>
-        <div class="lab">今週の投稿数</div>
-      </div>
-      <div class="stat-box">
-        <div class="num" style="color:${correctRate >= 60 ? '#00794f' : '#0f1419'}">${correctRate}%</div>
-        <div class="lab">完璧だった割合</div>
-      </div>
-      <div class="stat-box">
-        <div class="num">${avgPerDay}</div>
-        <div class="lab">1日あたり</div>
-      </div>
-      <div class="stat-box">
-        <div class="num">${allTweets}</div>
-        <div class="lab">これまでの投稿</div>
-      </div>
-    </div>
-
-    <div class="sec-title" style="font-size:16px">今週の判定</div>
-    <div class="judge-list">
-      ${['correct','minor_errors','major_errors','unclear'].map(j => `
-        <div class="judge-row">
-          <span class="dotc" style="background:${JUDGE_COLOR[j]}"></span>
-          <span>${JUDGE_LABEL[j]}</span>
-          <span class="n">${byJ[j]}</span>
-        </div>`).join('')}
-    </div>
-
-    <div class="sec-title" style="font-size:16px;margin-top:22px">よく出るエラータイプ</div>
-    ${tags.length
-      ? tags.map(([k,v]) => `
-        <div class="bar-row">
-          <span class="bar-label">${escapeHTML(k)}</span>
-          <div class="bar-track"><div class="bar-fill" style="width:${Math.round(v/maxTag*100)}%"></div></div>
-          <span class="bar-val">${v}</span>
-        </div>`).join('')
-      : `<div class="empty-note">まだエラーの記録がありません。いい調子です。</div>`}
-
-    <div class="encourage">
-      ${correctRate >= 70
-        ? '今週はとても自然に書けています。この調子で、少しずつ長い文にも挑戦してみましょう。'
-        : correctRate >= 40
-          ? 'しっかり書けています。間違いは伸びしろです。フォロワーの解説を読み返してみましょう。'
-          : '投稿を続けていること自体がすごいことです。焦らず、自分のペースで大丈夫。'}
-      <br>これまでの完璧な投稿：${allCorrect} 回
-    </div>
-  `;
+/* ========== 设置 ========== */
+function openSettings(){
+ document.getElementById("set-nick").value=S.settings.nick;
+ document.getElementById("set-bio").value=S.settings.bio;
+ document.getElementById("set-base").value=S.settings.base;
+ document.getElementById("set-key").value=S.settings.key;
+ document.getElementById("set-model").value=S.settings.model;
+ document.getElementById("settings-mask").classList.add("show");
+}
+function closeSettings(){document.getElementById("settings-mask").classList.remove("show");}
+function saveSettings(){
+ S.settings={nick:document.getElementById("set-nick").value.trim(),
+  bio:document.getElementById("set-bio").value.trim(),
+  base:document.getElementById("set-base").value.trim(),
+  key:document.getElementById("set-key").value.trim(),
+  model:document.getElementById("set-model").value.trim()};
+ save();updateStats();renderFeed();closeSettings();
+ toast(S.settings.key?"已保存，粉丝由你的 API 驱动":"已保存，当前为离线演示模式");
+}
+async function testAPI(){
+ const r=document.getElementById("test-result");r.className="test-result";r.textContent="测试中…";r.style.display="block";
+ const base=(document.getElementById("set-base").value.trim().replace(/\/+$/,""))||"https://api.openai.com/v1";
+ const key=document.getElementById("set-key").value.trim();
+ const model=document.getElementById("set-model").value.trim()||"gpt-4o-mini";
+ if(!key){r.className="test-result test-err";r.textContent="请先填 API Key";return;}
+ try{
+  const resp=await fetch(base+"/chat/completions",{method:"POST",
+   headers:{"Content-Type":"application/json","Authorization":"Bearer "+key},
+   body:JSON.stringify({model,messages:[{role:"user",content:"只回复：OK"}],max_tokens:5})});
+  if(resp.ok){r.className="test-result test-ok";r.textContent="✅ 连接成功，可以保存使用了";}
+  else{r.className="test-result test-err";r.textContent="❌ HTTP "+resp.status+"，请检查 Key / 模型名 / Base URL";}
+ }catch(e){r.className="test-result test-err";r.textContent="❌ "+(e.message||e)+"（若含 CORS / Failed to fetch，说明接口不允许浏览器直连，请换接口或加代理）";}
+}
+function clearData(){
+ if(!confirm("确定清空所有推文、统计和设置吗？"))return;
+ localStorage.removeItem("nichipure");S=load();save();
+ updateStats();renderFeed();switchTab("home");closeSettings();toast("已清空");
 }
 
-/* ============================================================
-   右サイドバー
-============================================================ */
-function renderAside() {
-  document.getElementById('followerCount').innerHTML =
-    `${db.followers}<span>人</span>`;
-  document.getElementById('followerList').innerHTML = PERSONA_NAMES.map(n => {
-    const p = PERSONA[n];
-    return `
-      <div class="follower">
-        <div class="avatar" style="background:${p.color}">${p.emoji}</div>
-        <div>
-          <div class="name">${escapeHTML(n)}</div>
-          <div class="desc">${p.handle} · ${escapeHTML(p.desc)}</div>
-        </div>
-      </div>`;
-  }).join('');
-}
-
-/* ============================================================
-   AI 呼び出し
-============================================================ */
-async function callAI(text, c) {
-  const base = c.baseUrl.replace(/\/+$/, '');
-  const url = base + '/chat/completions';
-  const body = {
-    model: c.model,
-    temperature: Number(c.temperature ?? 0.8),
-    messages: [
-      { role: 'system', content: SYSTEM_PROMPT },
-      { role: 'user', content: `ユーザーのツイート：\n「${text}」\n\n上記のJSON形式のみで返してください。` }
-    ]
-  };
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer ' + c.apiKey
-    },
-    body: JSON.stringify(body)
-  });
-  if (!res.ok) {
-    let msg = 'HTTP ' + res.status;
-    try {
-      const e = await res.json();
-      msg += ' — ' + (e.error?.message || JSON.stringify(e));
-    } catch {}
-    throw new Error(msg);
-  }
-  const data = await res.json();
-  const content = data.choices?.[0]?.message?.content;
-  if (!content) throw new Error('AIからの応答が空です');
-  return extractJSON(content);
-}
-function extractJSON(str) {
-  let s = String(str).trim();
-  s = s.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '');
-  const start = s.indexOf('{');
-  const end = s.lastIndexOf('}');
-  if (start === -1 || end === -1 || end < start) throw new Error('JSONが見つかりません');
-  return JSON.parse(s.slice(start, end + 1));
-}
-function normalizeResult(r) {
-  const allowed = ['correct','minor_errors','major_errors','unclear'];
-  const judgement = allowed.includes(r.judgement) ? r.judgement : 'minor_errors';
-  const likes = Number.isFinite(+r.likes) ? Math.max(0, Math.min(30, +r.likes)) : 0;
-  const errorTags = Array.isArray(r.errorTags)
-    ? r.errorTags.map(String).filter(Boolean).slice(0, 6) : [];
-
-  let reactions = Array.isArray(r.reactions) ? r.reactions
-    .filter(x => x && x.name && x.text)
-    .map(x => ({
-      name: PERSONA[x.name] ? x.name : '田中ゆかり',
-      type: x.type === 'retweet' ? 'retweet' : 'reply',
-      text: String(x.text),
-      correction: (x.correction && x.correction.fixed) ? {
-        original: x.correction.original ? String(x.correction.original) : '',
-        fixed: String(x.correction.fixed),
-        explanation: x.correction.explanation ? String(x.correction.explanation) : '',
-        points: Array.isArray(x.correction.points) ? x.correction.points.map(String) : []
-      } : null
-    })) : [];
-
-  // 人名の重複を除く
-  const seen = new Set();
-  reactions = reactions.filter(x => {
-    if (seen.has(x.name)) return false;
-    seen.add(x.name); return true;
-  }).slice(0, 3);
-
-  if (judgement === 'correct') reactions.forEach(x => { x.correction = null; });
-  if (!reactions.length) throw new Error('AIから反応が返ってきませんでした');
-
-  return { judgement, likes, errorTags, reactions };
-}
-
-async function testConnection(c) {
-  const base = c.baseUrl.replace(/\/+$/, '');
-  const res = await fetch(base + '/chat/completions', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + c.apiKey },
-    body: JSON.stringify({
-      model: c.model, max_tokens: 10,
-      messages: [{ role:'user', content:'ping' }]
-    })
-  });
-  if (!res.ok) {
-    let msg = 'HTTP ' + res.status;
-    try { const e = await res.json(); msg += ' — ' + (e.error?.message || JSON.stringify(e)); } catch {}
-    throw new Error(msg);
-  }
-  return true;
-}
-
-/* ============================================================
-   デモモード
-============================================================ */
-const MOCK_CORRECTION = {
-  '山田ミサキ': {
-    comment: 'ここ、もう少し丁寧にすると、もっと自然に聞こえますよ。一緒に見てみましょう。',
-    explanation: 'デモモードの添削です。APIを設定すると、実際の内容に合わせた解説が出ます。',
-    points: ['設定画面からAPIキーを入力してください']
-  },
-  '鈴木一郎': {
-    comment: '文の構造、分解してみましょう。落ち着いて見れば大丈夫です。',
-    explanation: 'デモモードの添削です。実際のAI添削はAPI設定後に有効になります。',
-    points: ['「設定」→ Base URL / API Key / モデル を入力']
-  }
-};
-function mockResult(text) {
-  const rand = Math.random();
-  let judgement;
-  if (text.length > 40) judgement = rand < 0.25 ? 'correct' : rand < 0.65 ? 'minor_errors' : 'major_errors';
-  else judgement = rand < 0.4 ? 'correct' : rand < 0.8 ? 'minor_errors' : 'major_errors';
-
-  const shuffled = [...PERSONA_NAMES].sort(() => Math.random() - 0.5);
-  const reactions = [];
-
-  if (judgement === 'correct') {
-    const n1 = '田中ゆかり', n2 = shuffled[1];
-    reactions.push({ name:n1, type:'reply',
-      text:'わ〜、すごく自然！この表現、そのまま使えますよ😊',
-      correction:null });
-    if (Math.random() < 0.4) {
-      reactions.push({ name:n2, type:'retweet',
-        text:'これ、自然すぎる！見習いたい表現です。',
-        correction:null });
-    }
-    return { judgement, likes:8 + Math.floor(Math.random()*8), errorTags:[], reactions };
-  }
-
-  const helpers = shuffled.filter(n => MOCK_CORRECTION[n]).slice(0, 1);
-  const other = shuffled.find(n => n !== helpers[0]);
-  if (helpers[0]) {
-    const h = helpers[0], tpl = MOCK_CORRECTION[h];
-    reactions.push({ name:h, type: judgement==='major_errors' ? 'retweet' : 'reply',
-      text: tpl.comment,
-      correction: {
-        original: text,
-        fixed: '（デモ）ここに正しい日本語が入ります。',
-        explanation: tpl.explanation,
-        points: tpl.points
-      }});
-  }
-  if (other && reactions.length < 2) {
-    reactions.push({ name:other, type:'reply',
-      text:'大丈夫、少しずつ慣れていきましょう。応援しています。',
-      correction:null });
-  }
-  return {
-    judgement,
-    likes: judgement === 'minor_errors' ? 3 + Math.floor(Math.random()*5) : Math.floor(Math.random()*3),
-    errorTags: ['助詞','自然さ'],
-    reactions
-  };
-}
-
-/* ============================================================
-   投稿
-============================================================ */
-const els = {
-  input: document.getElementById('input'),
-  postBtn: document.getElementById('postBtn'),
-  counter: document.getElementById('counter'),
-};
-let activePromptKey = null;
-
-function gainFollowers(judgement) {
-  const base = { correct:3, minor_errors:2, major_errors:1, unclear:1 }[judgement] || 1;
-  return base + Math.floor(Math.random() * 2);
-}
-
-async function submit() {
-  const text = els.input.value.trim();
-  if (!text || stateBusy) return;
-
-  const tweet = {
-    id: uid(), text, time: Date.now(), likes: 0,
-    reactions: [], judgement: null, pending: true, error: null,
-  };
-  db.tweets.unshift(tweet);
-  saveDB();
-
-  els.input.value = '';
-  autoResize();
-  updateCounter();
-  stateBusy = true;
-  els.postBtn.disabled = true;
-  renderHome();
-
-  try {
-    let result;
-    if (hasConfig()) {
-      result = normalizeResult(await callAI(text, cfg));
-    } else {
-      await new Promise(r => setTimeout(r, 750));
-      result = mockResult(text);
-    }
-
-    tweet.judgement = result.judgement;
-    tweet.likes     = result.likes;
-    tweet.reactions = result.reactions;
-
-    // 統計
-    db.stats.total++;
-    if (db.stats.byJ[result.judgement] != null) db.stats.byJ[result.judgement]++;
-    (result.errorTags || []).forEach(t => {
-      db.stats.errorTags[t] = (db.stats.errorTags[t] || 0) + 1;
-    });
-    db.activity.push({ t: Date.now(), j: result.judgement });
-
-    // お題クリア
-    if (activePromptKey) {
-      if (!db.donePrompts.includes(activePromptKey)) db.donePrompts.push(activePromptKey);
-      if (db.donePrompts.length > 60) db.donePrompts = db.donePrompts.slice(-60);
-      activePromptKey = null;
-      document.getElementById('promptChip').classList.remove('show');
-      document.getElementById('promptChipText').textContent = '';
-    }
-
-    // フォロワー増加
-    const gained = gainFollowers(result.judgement);
-    db.followers += gained;
-
-    // 通知生成
-    result.reactions.forEach(r => {
-      db.notifications.unshift({
-        id: uid(), time: Date.now(), tweetId: tweet.id,
-        name: r.name, type: r.type, text: r.text, read: false
-      });
-    });
-    db.notifications.unshift({
-      id: uid(), time: Date.now(), tweetId: tweet.id,
-      name: '田中ゆかり', type: 'follow',
-      text: `新しいフォロワーが ${gained} 人増えました。`,
-      read: false
-    });
-
-    saveDB();
-    updateBadges();
-
-    const msg = {
-      correct:'✅ 完璧でした！フォロワーが喜んでいます。',
-      minor_errors:'⚠️ 小さなミスがありました。解説を読んでみましょう。',
-      major_errors:'❌ いくつか直すところがあります。焦らずいきましょう。',
-      unclear:'🤔 フォロワーがやさしく聞き返しています。'
-    }[result.judgement];
-    toast(msg);
-
-  } catch (e) {
-    console.error(e);
-    tweet.error = hasConfig()
-      ? `AIの呼び出しに失敗しました: ${e.message}（設定を確認してください）`
-      : `通信エラー: ${e.message}`;
-  } finally {
-    tweet.pending = false;
-    stateBusy = false;
-    renderHome();
-    updateCounter();
-    if (currentView !== 'home') showView('home');
-  }
-}
-let stateBusy = false;
-
-/* ============================================================
-   入力欄
-============================================================ */
-const MAX_LEN = 280;
-function autoResize() {
-  els.input.style.height = 'auto';
-  els.input.style.height = Math.min(els.input.scrollHeight, 320) + 'px';
-}
-function updateCounter() {
-  const len = els.input.value.length;
-  els.counter.textContent = `${len} / ${MAX_LEN}`;
-  els.counter.classList.toggle('over', len > MAX_LEN);
-  els.postBtn.disabled = len === 0 || len > MAX_LEN || stateBusy;
-}
-function insertToComposer(str) {
-  const el = els.input;
-  const start = el.selectionStart ?? el.value.length;
-  const end = el.selectionEnd ?? el.value.length;
-  el.value = el.value.slice(0, start) + str + el.value.slice(end);
-  el.selectionStart = el.selectionEnd = start + str.length;
-  autoResize();
-  updateCounter();
-}
-function focusComposer() {
-  showView('home');
-  setTimeout(() => els.input.focus(), 50);
-}
-
-els.input.addEventListener('input', () => { autoResize(); updateCounter(); });
-els.input.addEventListener('keydown', e => {
-  if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
-    e.preventDefault();
-    submit();
-  }
-});
-els.postBtn.addEventListener('click', submit);
-
-document.getElementById('promptChipClear').addEventListener('click', () => {
-  activePromptKey = null;
-  document.getElementById('promptChip').classList.remove('show');
-  document.getElementById('promptChipText').textContent = '';
-});
-
-/* ============================================================
-   設定モーダル
-============================================================ */
-const settingsModal = document.getElementById('settingsModal');
-
-function openSettings() {
-  document.getElementById('cfgBaseUrl').value = cfg.baseUrl || '';
-  document.getElementById('cfgApiKey').value  = cfg.apiKey || '';
-  document.getElementById('cfgModel').value   = cfg.model || '';
-  const t = cfg.temperature ?? 0.8;
-  document.getElementById('cfgTemp').value = t;
-  document.getElementById('tempVal').textContent = Number(t).toFixed(1);
-
-  const tr = document.getElementById('testResult');
-  tr.className = 'test-result'; tr.textContent = '';
-
-  document.querySelectorAll('#presets button').forEach(b => b.classList.remove('active'));
-  settingsModal.classList.add('open');
-  document.body.style.overflow = 'hidden';
-}
-function closeSettings() {
-  settingsModal.classList.remove('open');
-  document.body.style.overflow = '';
-  document.getElementById('topTitle').textContent = VIEW_TITLES[currentView] || 'ホーム';
-}
-document.getElementById('closeSettings').addEventListener('click', closeSettings);
-settingsModal.addEventListener('click', e => {
-  if (e.target === settingsModal) closeSettings();
-});
-document.addEventListener('keydown', e => {
-  if (e.key === 'Escape' && settingsModal.classList.contains('open')) closeSettings();
-});
-
-document.querySelectorAll('#presets button').forEach(btn => {
-  btn.addEventListener('click', () => {
-    const p = PRESETS[btn.dataset.preset];
-    if (!p) return;
-    document.getElementById('cfgBaseUrl').value = p.baseUrl;
-    document.getElementById('cfgModel').value   = p.model;
-    document.querySelectorAll('#presets button').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    const tr = document.getElementById('testResult');
-    tr.className = 'test-result'; tr.textContent = '';
-  });
-});
-
-document.getElementById('toggleKey').addEventListener('click', () => {
-  const k = document.getElementById('cfgApiKey');
-  k.type = k.type === 'password' ? 'text' : 'password';
-});
-document.getElementById('cfgTemp').addEventListener('input', e => {
-  document.getElementById('tempVal').textContent = Number(e.target.value).toFixed(1);
-});
-
-document.getElementById('saveSettings').addEventListener('click', () => {
-  saveConfig({
-    baseUrl: document.getElementById('cfgBaseUrl').value.trim(),
-    apiKey:  document.getElementById('cfgApiKey').value.trim(),
-    model:   document.getElementById('cfgModel').value.trim(),
-    temperature: parseFloat(document.getElementById('cfgTemp').value) || 0.8,
-  });
-  closeSettings();
-  toast('設定を保存しました');
-});
-
-document.getElementById('clearBtn').addEventListener('click', () => {
-  document.getElementById('cfgBaseUrl').value = '';
-  document.getElementById('cfgApiKey').value  = '';
-  document.getElementById('cfgModel').value   = '';
-  saveConfig({ baseUrl:'', apiKey:'', model:'', temperature:0.8 });
-  const tr = document.getElementById('testResult');
-  tr.className = 'test-result ok show';
-  tr.textContent = 'API設定をクリアしました（デモモードに戻ります）。';
-});
-
-document.getElementById('resetDataBtn').addEventListener('click', () => {
-  if (!confirm('練習データ（ツイート・通知・統計）をすべて削除します。よろしいですか？')) return;
-  db = defaultDB();
-  saveDB();
-  renderHome();
-  updateBadges();
-  toast('練習データをリセットしました');
-});
-
-document.getElementById('testBtn').addEventListener('click', async () => {
-  const tr = document.getElementById('testResult');
-  const c = {
-    baseUrl: document.getElementById('cfgBaseUrl').value.trim(),
-    apiKey:  document.getElementById('cfgApiKey').value.trim(),
-    model:   document.getElementById('cfgModel').value.trim(),
-  };
-  if (!c.baseUrl || !c.apiKey || !c.model) {
-    tr.className = 'test-result ng show';
-    tr.textContent = 'Base URL・API Key・モデルをすべて入力してください。';
-    return;
-  }
-  tr.className = 'test-result wait show';
-  tr.textContent = '接続テスト中…';
-  try {
-    await testConnection(c);
-    tr.className = 'test-result ok show';
-    tr.textContent = '✅ 接続成功！この設定で保存できます。';
-  } catch (e) {
-    tr.className = 'test-result ng show';
-    tr.textContent = '⚠️ 接続失敗: ' + e.message + '（CORS の可能性もあります）';
-  }
-});
-
-/* ============================================================
-   初期化
-============================================================ */
-function init() {
-  renderHome();
-  updateBadges();
-  updateCounter();
-  document.getElementById('topTitle').textContent = 'ホーム';
-  document.getElementById('modeBanner').classList.toggle('show', !hasConfig());
-}
-init();
+/* ========== 初始化 ========== */
+document.getElementById("tweet-input").addEventListener("input",updateCount);
+document.getElementById("tweet-input").addEventListener("keydown",e=>{if(e.key==="Enter"&&(e.ctrlKey||e.metaKey))postTweet();});
+document.getElementById("settings-mask").addEventListener("click",e=>{if(e.target.id==="settings-mask")closeSettings();});
+renderFollowers();renderTrends();updateStats();renderFeed();
+if(!S.welcome){S.welcome=true;save();setTimeout(()=>toast("🐦 欢迎来到日推练习场！点右下角 ⚙️ 填 API，或直接发推体验离线演示"),600);}
 </script>
 </body>
 </html>
