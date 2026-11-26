@@ -119,6 +119,7 @@ body{font-family:-apple-system,"PingFang SC","Hiragino Sans","Noto Sans JP","Mic
 .report .bs b{font-size:24px;display:block;color:var(--blue)}
 .bar-row{display:flex;align-items:center;gap:8px;font-size:13px;margin:4px 0}
 .bar-row .bar{height:10px;background:var(--blue);border-radius:5px;min-width:4px}
+.chat-input{padding:8px 14px;border:1px solid var(--border);border-radius:999px;font-size:14px;outline:none;width:calc(100% - 86px)}
 .api-badge{font-size:11px;padding:2px 8px;border-radius:999px;margin-left:8px}
 .api-on{background:#e8f5e9;color:#2e7d32}.api-off{background:#fee;color:#c00}
 @media(max-width:1000px){.app{grid-template-columns:70px 1fr}.left .nav-item span.txt,.profile-card{display:none}.right{display:none}}
@@ -287,6 +288,16 @@ function renderFeed(){
     }).join("")+`</div>`;
    }
   }
+  if(t.convo&&t.convo.length){
+   h+=`<div class="replies" style="border-left-color:var(--blue)">`+t.convo.map(c=>{
+    if(c.who==="user")return `<div class="reply" style="background:#eef7ff"><div class="avatar" style="background:#7856ff;width:32px;height:32px;font-size:16px;flex-shrink:0">🙂</div>
+      <div style="flex:1;min-width:0"><div class="r-head"><span class="r-name">${esc(S.settings.nick||"あなた")}</span><span class="r-time">· あなた</span></div><div class="r-text">${esc(c.text)}</div></div></div>`;
+    const p=pOf(c.handle);
+    return `<div class="reply">${avatarHTML(p)}<div style="flex:1;min-width:0"><div class="r-head"><span class="r-name">${p.name}</span><span class="r-handle">${p.handle}</span></div><div class="r-text">${esc(c.text)}</div>${c.explanation?`<div class="r-exp">💡 ${esc(c.explanation)}</div>`:""}</div></div>`;
+   }).join("")+`</div>`;
+  }
+  if(!t.loading)h+=`<div style="margin-top:10px"><button class="btn btn-ghost" style="font-size:12px;padding:5px 14px" onclick="toggleChat('${t.id}')">💬 和粉丝继续聊</button></div>
+  <div id="chat-${t.id}" style="display:none;margin-top:8px"><input class="chat-input" id="ci-${t.id}" placeholder="用日语或中文回复粉丝…" onkeydown="if(event.key==='Enter')chatReply('${t.id}')"><button class="btn btn-primary" style="font-size:12px;padding:6px 14px;margin-left:6px" onclick="chatReply('${t.id}')">发送</button></div>`;
   h+=`</div></div>`;return h;
  }).join("");
 }
@@ -341,7 +352,7 @@ async function postTweet(){
  if(!text){toast("先写点什么吧");return;}
  if(text.length>280){toast("超过 280 字啦");return;}
  const id="t"+Date.now();
- S.tweets.unshift({id,text,time:nowStr(),loading:true,res:null});
+ S.tweets.unshift({id,text,time:nowStr(),loading:true,res:null,convo:[]});
  S.stats.posts++;save();ta.value="";updateCount();renderFeed();updateStats();
  let res;
  if(S.settings.key){ try{res=await callLLM(text);}catch(e){
@@ -361,26 +372,57 @@ function updateCount(){const n=document.getElementById("tweet-input").value.leng
 
 /* ========== LLM 调用 ========== */
 function systemPrompt(){
- return `你是「日推练习场」应用里所有日本粉丝的人格集合。用户是中文母语的日语学习者，在模拟推特上发日语推文练习。规则：
-1. 粉丝人设（严格遵守）：
-🌸田中ゆかり@yukari_tanaka：28岁东京OL，温柔，爱夸人爱点赞。
-🔥佐藤ケンタ@kenta_saito：22岁大阪大学生，関西弁口癖（やで／ほんま），活泼话痨，爱讲地道表达。
-🔍山田ミサキ@misaki_yamada：35岁京都主妇，心细，专盯敬语助词语感，纠正最详细。
-🤓鈴木一郎@ichiro_suzuki：31岁程序员，语法控，爱做结构化拆解，emoji少。
-🎮高橋あい@ai_takahashi：19岁动漫宅，活泼，会提动漫台词。
-2. 判定用户推文等级：✅完全正确 / 🟡仅1处小错 / 🟠2处以上错误或不自然 / 🔴基本看不懂。
-3. 互动规则：粉丝正文只说日语；每条纠正须附中文讲解（讲清规则+为什么错）。永远先扬后抑、温柔鼓励，禁止打击。🔴时不要逐条纠正，用简单日语温柔确认意思并给正确示范。
-4. 数量规则：✅→likes 15~40、1~2条夸回复；🟡→likes 3~8、1~2条纠正回复；🟠→likes 0~3、2~3条纠正回复+1条引用转推讲解；🔴→likes 2~5、1~2条温柔确认回复。引用转推一般来自鈴木一郎或佐藤ケンタ。
-5. 只输出一个 JSON 对象（不要markdown代码块），格式：
-{"level":"🟡","likes":6,"replies":[{"handle":"@misaki_yamada","text":"日语正文（含❌原文→✅修正）","explanation":"💡中文讲解"}],"quote_rts":[{"handle":"@ichiro_suzuki","text":"引用转推讲解正文"}],"error_types":["助詞"]}
-error_types 从：助詞/動詞変形/時制/敬語/語彙/語順/その他 中选。用户推文：`;
+ return `你是「日推练习场」应用里所有日本粉丝的人格集合。用户是中文母语的日语学习者，在模拟推特上发日语推文练习。粉丝要像真实推特上的活人朋友一样和用户互动，而不是批改作业的老师。
+
+【粉丝人设（严格遵守，性格差异要明显）】
+🌸田中ゆかり@yukari_tanaka：28岁东京OL，温柔包容，像大姐姐，爱夸人爱点赞，常分享自己的生活小事。
+🔥佐藤ケンタ@kenta_saito：22岁大阪大学生，関西弁口癖（やで／ほんま／ちゃう？），活泼话痨，爱开玩笑接梗，爱聊吃喝和大学生活。
+🔍山田ミサキ@misaki_yamada：35岁京都主妇，心细周到，会认真回答别人问的问题，纠正错误时温柔具体。
+🤓鈴木一郎@ichiro_suzuki：31岁程序员，说话直接但热心，喜欢把事情讲清楚，偶尔吐槽自己加班。
+🎮高橋あい@ai_takahashi：19岁动漫宅，元气满满，动不动就联想到动漫，爱用颜文字，爱反问别人。
+
+【互动规则（最重要）】
+1. 内容优先：每条推文必须引发粉丝对「内容本身」的真实反应——如果用户提了问题，要有人认真回答；如果是分享日常，要有人共鸣、分享自己类似的经历、发表看法、开玩笑。纠错只是互动的一部分，绝不是全部。
+2. 有来有回：粉丝要经常反问用户（「〜なんですか？」「どこで〜たんですか？」），推动对话继续。说对了也要积极互动，而不只是干巴巴地夸。
+3. 有记忆：给定【用户最近的推文与互动】时，粉丝要自然地提起之前的事、追问后续（比如之前说要去取快递，就问他拿到了没）。
+4. 纠错方式：小错口头带过、自然融入对话（如「『に』のほうが自然かも！」）；只有影响理解的错误才用 ❌/✅ 对照，且先扬后抑，绝不打击人。
+5. 语言：粉丝正文只说日语，要像真实网友：短句、口语、emoji、颜文字。中文讲解只在确实纠正语法时放在 explanation 字段，闲聊回复 explanation 留空。
+6. 🔴（基本看不懂）时：不逐条纠正，粉丝用简单日语温柔确认意思，并给正确示范。
+
+【输出格式】只输出一个 JSON 对象（不要markdown代码块），格式：
+{"level":"✅|🟡|🟠|🔴","likes":数字,"replies":[{"handle":"@kenta_saito","text":"日语正文","explanation":"中文讲解（仅纠错时填）"}],"quote_rts":[{"handle":"@ichiro_suzuki","text":"引用转推正文，可以是深入讲解，也可以是激动共鸣/分享"}],"error_types":["助詞"]}
+- 等级：✅完全正确 / 🟡仅1处小错 / 🟠2处以上错误或不自然 / 🔴基本看不懂。
+- likes：✅→15~40；🟡→3~8；🟠→0~3；🔴→2~5。
+- replies 数量：✅→2~3条（以互动为主）；🟡→2条（1条纠错+1条内容互动）；🟠→2~3条；🔴→2条。
+- quote_rts 可不出现；出现时多为鈴木或ケンタ，内容可以是讲解也可以是「わかるわ〜」式的共鸣转发。
+- error_types 从：助詞/動詞変形/時制/敬語/語彙/語順/その他 中选，没错就留空数组。`;
+}
+function chatSystemPrompt(){
+ return `你是「日推练习场」里所有日本粉丝的人格集合，正在和用户进行推特式对话。用户可能用日语或中文发言。
+
+【人设】🌸田中ゆかり@yukari_tanaka（温柔OL姐姐）；🔥佐藤ケンタ@kenta_saito（関西弁话痨大学生）；🔍山田ミサキ@misaki_yamada（细心主妇）；🤓鈴木一郎@ichiro_suzuki（直接热心的程序员）；🎮高橋あい@ai_takahashi（元气动漫宅）。
+
+【规则】
+1. 像真正的朋友聊天：回答用户的问题、回应他的观点、分享自己相关的事、开开玩笑、反问用户，有来有回。
+2. 用户说日语时若有小错，顺手自然纠正（口头带过即可，别批改腔）；用户用中文说话就正常用日语聊（可适当放慢、用简单日语）。
+3. 保持各自人设的口癖和性格差异，回复短句口语化，像真实推特回复。
+4. 只输出 JSON：{"replies":[{"handle":"@...","text":"日语正文","explanation":"中文讲解（仅纠错时）"}]}，输出2~3条不同的粉丝回复。`;
+}
+function recentContext(){
+ const ts=S.tweets.slice(0,4).map(t=>{
+  let s="用户推文：「"+t.text+"」";
+  if(t.res&&t.res.replies)(t.res.replies||[]).slice(0,3).forEach(r=>{s+="\n  "+pOf(r.handle).name+"曾回复："+String(r.text).slice(0,80);});
+  (t.convo||[]).slice(-4).forEach(c=>{s+="\n  "+(c.who==="user"?"用户":pOf(c.handle).name)+":"+String(c.text).slice(0,80);});
+  return s;
+ }).join("\n---\n");
+ return ts?"\n\n【用户最近的推文与互动（粉丝记得这些事，要在回复中自然提起、追问、接梗）】\n"+ts:"";
 }
 async function callLLM(text){
  const base=S.settings.base.replace(/\/+$/,"")||"https://api.openai.com/v1";
  const r=await fetch(base+"/chat/completions",{method:"POST",
   headers:{"Content-Type":"application/json","Authorization":"Bearer "+S.settings.key},
   body:JSON.stringify({model:S.settings.model||"gpt-4o-mini",
-   messages:[{role:"system",content:systemPrompt()+text}],
+   messages:[{role:"system",content:systemPrompt()+recentContext()+"\n\n现在用户的新推文："+text}],
    temperature:0.8,max_tokens:1200})});
  if(!r.ok){const e=await r.text().catch(()=> "");throw new Error("HTTP "+r.status+(e?"："+e.slice(0,120):""));}
  const j=await r.json();
@@ -400,6 +442,41 @@ function normalizeRes(res){
  return res;
 }
 
+function toggleChat(id){const b=document.getElementById("chat-"+id);b.style.display=b.style.display==="none"?"block":"none";}
+async function chatReply(id){
+ const inp=document.getElementById("ci-"+id),text=inp.value.trim();if(!text)return;
+ const t=S.tweets.find(x=>x.id===id);
+ t.convo=t.convo||[];t.convo.push({who:"user",text});
+ inp.value="";save();renderFeed();
+ if(!S.settings.key){
+  t.convo.push({who:"@ai_takahashi",text:"えへへ、（离线演示模式だから详细なおしゃべりはできないけど…）APIを設定したら本気でお話するよ！",explanation:""});
+  save();renderFeed();return;}
+ toast("🍙 粉丝正在回复…");
+ try{
+  const res=await chatLLM(t);
+  [...(res.replies||[]),...(res.quote_rts||[])].forEach(r=>t.convo.push(r));
+ }catch(e){toast("回复失败："+(e.message||e));}
+ save();renderFeed();
+}
+async function chatLLM(t){
+ const base=S.settings.base.replace(/\/+$/,"")||"https://api.openai.com/v1";
+ const history=t.convo.map(c=>c.who==="user"?"用户："+c.text:pOf(c.handle).name+"："+c.text).join("\n");
+ const r=await fetch(base+"/chat/completions",{method:"POST",
+  headers:{"Content-Type":"application/json","Authorization":"Bearer "+S.settings.key},
+  body:JSON.stringify({model:S.settings.model||"gpt-4o-mini",
+   messages:[{role:"system",content:chatSystemPrompt()},{role:"user",content:"用户最初的推文：「"+t.text+"」\n之后的对话：\n"+history}],
+   temperature:0.85,max_tokens:900})});
+ if(!r.ok)throw new Error("HTTP "+r.status);
+ const j=await r.json();
+ let content=(j.choices&&j.choices[0]&&j.choices[0].message&&j.choices[0].message.content)||"";
+ content=content.replace(/```json|```/g,"").trim();
+ const m=content.match(/\{[\s\S]*\}/);if(!m)throw new Error("模型没有返回有效 JSON");
+ const res=JSON.parse(m[0]);
+ const okH=PERSONAS.map(pp=>pp.handle);
+ [...(res.replies||[]),...(res.quote_rts||[])].forEach(rr=>{if(!okH.includes(rr.handle))rr.handle="@ai_takahashi";});
+ return res;
+}
+
 /* ========== 离线演示模式 ========== */
 function offlineDemo(text){
  const issues=[];
@@ -407,9 +484,13 @@ function offlineDemo(text){
  if(!/(です|ます|だ|ですね|ました|ません)/.test(text))issues.push({type:"時制",tip:"句尾加「です／ます」会让整句更礼貌自然（だ体适合熟人）。"});
  if(/受け取ります/.test(text)&&!/に行き/.test(text))issues.push({type:"語彙",tip:"去某地自取要说「受け取りに行きます」，单说「受け取ります」像「它自己会寄到」。"});
  const praise="いいですね！よく書けてます";
+ const isQ=/[？?か][。！!]?$/.test(text)||/ですか|ますか|の？|かな/.test(text);
+ const contentReact=isQ
+  ?[{handle:"@ai_takahashi",text:"いい質問！（离线演示：配置API后粉丝会认真回答你的问题并反问你哦）",explanation:""},
+    {handle:"@kenta_saito",text:"おれも気になる！どう思うん？",explanation:""}]
+  :[{handle:"@kenta_saito",text:"おお！わかるわかる！（离线演示：配置API后粉丝会对内容分享看法、聊自己的事）",explanation:""}];
  if(!issues.length)return {level:"✅",likes:18+Math.floor(Math.random()*15),
-  replies:[{handle:"@yukari_tanaka",text:praise+"🌸",explanation:""},
-   {handle:"@ai_takahashi",text:"めっちゃ自然！さすが！",explanation:""}],
+  replies:[{handle:"@yukari_tanaka",text:praise+"🌸",explanation:""},...contentReact],
   quote_rts:[],error_types:[]};
  if(issues.length===1)return {level:"🟡",likes:3+Math.floor(Math.random()*5),
   replies:[{handle:"@misaki_yamada",text:"よく書けてますよ〜！ひとつだけ："+text+"\n💡【离线演示】"+issues[0].tip,explanation:issues[0].tip},
